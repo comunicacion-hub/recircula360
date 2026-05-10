@@ -167,6 +167,7 @@ function navTo(seccion) {
   const titulos = {
     dashboard:     { titulo: 'Dashboard ambiental',        sub: null },
     entregas:      { titulo: 'Entregas',                   sub: 'Registro de entregas de material' },
+    asociaciones:  { titulo: 'Asociaciones',               sub: 'Gestión de asociaciones recicladores' },
     accesos:       { titulo: 'Accesos',                    sub: 'Links y recursos del equipo' },
     configuracion: { titulo: 'Configuración',              sub: 'Solo administradores' },
   };
@@ -186,6 +187,7 @@ function navTo(seccion) {
   switch (seccion) {
     case 'dashboard':     renderDashboard();     break;
     case 'entregas':      renderEntregas();      break;
+    case 'asociaciones':  renderAsociaciones();  break;
     case 'accesos':       renderAccesos();       break;
     case 'configuracion': renderConfiguracion(); break;
     default:
