@@ -6,7 +6,975 @@
 <title>ReCircula 360 - Plataforma de sistematización</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="styles.css">
+<style>
+/* ============================================================
+   RECIRCULA 360 — Estilos globales
+   ============================================================ */
+
+/* ── Tokens de diseño ───────────────────────────────────── */
+:root {
+  --b1: #002343;
+  --b2: #0778bf;
+  --g1: #5bbd70;
+  --g2: #00bda4;
+  --c1: #86d2da;
+  --c2: #079fff;
+  --tx: #1b1b1b;
+  --tm: #5a6a7a;
+  --tl: #9aafbe;
+  --bg: linear-gradient(135deg, #e4f4fb, #eef4ff, #e4fbf7);
+  --surface: #ffffff;
+  --border: rgba(0, 35, 67, 0.09);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --sidebar-w: 224px;
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  color: var(--tx);
+  background: var(--bg);
+  min-height: 100vh;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utilidades ─────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+.grad-text {
+  background: linear-gradient(90deg, var(--c1), var(--c2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Botones ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-sm);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: opacity 0.15s, transform 0.1s, background 0.15s;
+  white-space: nowrap;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: #fff; border-color: var(--b2); color: var(--b2); }
+.btn-primary:hover { background: #f0f7ff; }
+.btn-success { background: #fff; border-color: var(--g2); color: var(--g2); }
+.btn-success:hover { background: #f0fbf8; }
+.btn-danger  { background: #fff; border-color: #c91a44; color: #c91a44; }
+.btn-danger:hover { background: #fff0f3; }
+.btn-glass   { background: #fff; border-color: #cdd5dd; color: var(--tm); }
+.btn-glass:hover { background: #f8fbfd; }
+.btn-sm { padding: 6px 13px; font-size: 12px; }
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  padding: 18px 20px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-tag {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--b2);
+  background: #e8f4fb;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+/* ── Badges ──────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-blue  { background: #e4f4fb; color: var(--b1); }
+.badge-green { background: #e4fbf4; color: #0f6e56; }
+.badge-cyan  { background: #e4f8fb; color: #0569a0; }
+.badge-warn  { background: #fff8e4; color: #854f0b; }
+.badge-red   { background: #fff0f3; color: #c91a44; }
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--b1);
+  color: #fff;
+  padding: 11px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 9999;
+  transition: transform 0.3s;
+  white-space: nowrap;
+  pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Spinner ─────────────────────────────────────────────── */
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid #e4f4fb;
+  border-top-color: var(--b2);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+#screen-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.login-card {
+  background: #fff;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  padding: 48px 44px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0, 35, 67, 0.08);
+}
+
+.login-logo {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.login-tagline {
+  font-size: 13px;
+  color: var(--tm);
+  margin-bottom: 36px;
+}
+
+.login-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tx);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.login-google-btn:hover { background: #f8fbfd; border-color: var(--b2); }
+
+.login-google-icon { width: 20px; height: 20px; }
+
+.login-domain-note {
+  margin-top: 16px;
+  font-size: 11.5px;
+  color: var(--tl);
+}
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+#screen-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.load-text {
+  font-size: 14px;
+  color: var(--tm);
+  font-weight: 500;
+}
+
+/* ============================================================
+   APP PRINCIPAL
+   ============================================================ */
+#screen-app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: #fff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  z-index: 100;
+  transition: transform 0.25s;
+}
+
+.sb-head {
+  padding: 22px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sb-logo { font-size: 17px; font-weight: 800; }
+
+.sb-sub {
+  font-size: 11px;
+  color: var(--tm);
+  margin-top: 2px;
+}
+
+.sb-nav {
+  padding: 12px 10px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sb-section {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tl);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 10px 4px;
+}
+
+.sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--tm);
+  margin-bottom: 2px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.sb-item:hover { background: #f0f7fb; color: var(--b2); }
+.sb-item.active {
+  background: linear-gradient(135deg, #e4f4fb, #eef8ff);
+  color: var(--b1);
+  font-weight: 600;
+}
+.sb-item i { font-size: 18px; flex-shrink: 0; }
+.sb-item.admin-only { color: #b8c8d4; }
+.sb-item.admin-only:hover { background: #f8fbfd; color: var(--tl); }
+
+.sb-foot {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.user-chip { display: flex; align-items: center; gap: 10px; }
+
+.user-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--b1), var(--b2));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-name { font-size: 13px; font-weight: 600; color: var(--tx); }
+.user-role { font-size: 11px; color: var(--tm); }
+
+.btn-logout {
+  margin-top: 10px;
+  width: 100%;
+  padding: 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--tm);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-logout:hover { background: #fff0f3; color: #c91a44; border-color: #f5c0cc; }
+
+/* ── Área principal ──────────────────────────────────────── */
+.main-area {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  gap: 12px;
+}
+
+.topbar-title { font-size: 19px; font-weight: 700; color: var(--b1); }
+.topbar-sub   { font-size: 12px; color: var(--tm); margin-top: 2px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+  cursor: pointer;
+  color: var(--b1);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex: 1;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ============================================================
+   FILTROS SUPERIORES
+   ============================================================ */
+.filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #fff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 11px 16px;
+}
+
+.filter-label-inline {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tl);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.filter-select-sm {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12.5px;
+  color: var(--tx);
+  background: #f8fbfd;
+  cursor: pointer;
+  min-width: 110px;
+  transition: border-color 0.15s;
+}
+.filter-select-sm:focus { outline: none; border-color: var(--b2); }
+
+.filter-divider {
+  width: 1px; height: 22px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+.btn-reset-filters {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--tl);
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-reset-filters:hover { color: var(--b2); border-color: var(--b2); }
+
+/* ============================================================
+   PESTAÑAS
+   ============================================================ */
+.tabs-bar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 9px 20px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tm);
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  transition: color 0.15s, background 0.15s;
+  font-family: 'Outfit', sans-serif;
+}
+.tab-btn:hover { color: var(--b2); }
+.tab-btn.active {
+  background: #fff;
+  color: var(--b1);
+  border-color: var(--border);
+  margin-bottom: -1px;
+}
+
+/* ============================================================
+   MODALES
+   ============================================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 35, 67, 0.35);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: var(--radius-xl);
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 35, 67, 0.15);
+}
+
+.modal-head {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.modal-title { font-size: 16px; font-weight: 700; color: var(--b1); }
+
+.modal-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f0f4f8;
+  color: var(--tm);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.modal-close:hover { background: #ffe4e9; color: #c91a44; }
+
+.modal-body { padding: 20px 24px; }
+
+.modal-foot {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ============================================================
+   FORMULARIOS
+   ============================================================ */
+.form-group { margin-bottom: 16px; }
+
+.form-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--tm);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-family: 'Outfit', sans-serif;
+  font-size: 13.5px;
+  color: var(--tx);
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--b2);
+  box-shadow: 0 0 0 3px rgba(7, 120, 191, 0.08);
+}
+.form-textarea { resize: vertical; min-height: 80px; }
+
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+.form-hint {
+  font-size: 11px;
+  color: var(--tl);
+  margin-top: 4px;
+}
+
+/* ── Sección de materiales en formulario entrega ─────────── */
+.materiales-section {
+  background: #f8fbfd;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  border: 1px solid var(--border);
+}
+
+.materiales-section-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--b1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.material-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.material-row-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--tx);
+}
+
+.material-priorizable {
+  border-left: 3px solid var(--c2);
+  padding-left: 8px;
+}
+
+.material-valor {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--g2);
+  text-align: right;
+}
+
+/* ============================================================
+   TABLAS
+   ============================================================ */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+thead th {
+  background: #f4f8fb;
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f0f4f8;
+  color: var(--tx);
+  vertical-align: middle;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: #f8fbfd; }
+
+.td-actions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
+tbody tr:hover .td-actions { opacity: 1; }
+
+/* ============================================================
+   DASHBOARD — KPIs
+   ============================================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kpi-card {
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+}
+
+.kpi-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--tm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--b1);
+  line-height: 1;
+}
+
+.kpi-unit {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--tm);
+}
+
+.kpi-note {
+  font-size: 10.5px;
+  color: var(--tl);
+  margin-top: 4px;
+}
+
+.kpi-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: #eef2f6;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.kpi-fill { height: 100%; border-radius: 4px; }
+.kpi-fill-blue  { background: linear-gradient(90deg, var(--b1), var(--b2)); }
+.kpi-fill-green { background: linear-gradient(90deg, var(--g1), var(--g2)); }
+.kpi-fill-cyan  { background: linear-gradient(90deg, var(--c1), var(--c2)); }
+.kpi-fill-warn  { background: linear-gradient(90deg, #f5ad21, #9fda60); }
+
+/* ── Dashboard grids ─────────────────────────────────────── */
+.dash-charts-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr);
+  gap: 14px;
+}
+
+.dash-bottom-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 14px;
+}
+
+.dash-hist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 14px;
+}
+
+/* ── Leyenda de gráficos ─────────────────────────────────── */
+.chart-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--tm);
+}
+
+.legend-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-line {
+  width: 14px; height: 2.5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Colectivos beneficiarios ────────────────────────────── */
+.asoc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.asoc-chip {
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+  background: #f0f7fb;
+  color: var(--b1);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Ranking compradores ─────────────────────────────────── */
+.ranking-bar-bg {
+  flex: 1;
+  height: 7px;
+  background: #f0f4f8;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.ranking-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--b1), var(--b2));
+}
+
+/* ── Cilindros de avance ─────────────────────────────────── */
+.cylinders-wrap {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 110px;
+  padding: 0 8px;
+}
+
+.cyl-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.cyl-pct {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--b1);
+}
+
+.cyl-outer {
+  width: 34px; height: 70px;
+  border-radius: 17px;
+  background: #eef2f6;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.cyl-fill {
+  width: 100%;
+  border-radius: 17px;
+  transition: height 0.6s ease;
+}
+
+.cyl-name {
+  font-size: 10px;
+  color: var(--tm);
+  font-weight: 500;
+  text-align: center;
+}
+
+/* ============================================================
+   ACCESOS
+   ============================================================ */
+.accesos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.acceso-card {
+  background: #fff;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 16px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.15s;
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.acceso-card:hover {
+  box-shadow: 0 4px 20px rgba(0, 35, 67, 0.1);
+  transform: translateY(-2px);
+}
+
+.acceso-emoji { font-size: 24px; }
+.acceso-nombre { font-size: 13px; font-weight: 600; color: var(--tx); }
+.acceso-cat { font-size: 11px; color: var(--tl); }
+
+/* ── Chips de categoría ──────────────────────────────────── */
+.cat-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cat-chip {
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  color: var(--tm);
+  background: #fff;
+  transition: all 0.15s;
+  user-select: none;
+}
+.cat-chip.active {
+  background: linear-gradient(135deg, var(--b1), var(--b2));
+  color: #fff;
+  border-color: transparent;
+}
+
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+.config-section {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.config-section-head {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fbfd;
+}
+
+.config-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--b1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-section-body { padding: 16px 20px; }
+
+/* ============================================================
+   RESPONSIVE — MÓVIL
+   ============================================================ */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 224px;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main-area { margin-left: 0; }
+  .main-content { padding: 14px 16px; }
+  .mobile-menu-btn { display: flex; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .dash-charts-row { grid-template-columns: 1fr; }
+  .dash-bottom-row { grid-template-columns: 1fr; }
+  .dash-hist-grid  { grid-template-columns: 1fr; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .form-grid-3 { grid-template-columns: 1fr; }
+  .material-row { grid-template-columns: 1fr 1fr; }
+  .accesos-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .accesos-grid { grid-template-columns: 1fr; }
+  .main-topbar { padding: 12px 16px; }
+}
+
+</style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
@@ -103,12 +1071,2329 @@
 <div id="toast"></div>
 
 <!-- Scripts — orden importante -->
-<script src="app.js"></script>
-<script src="dashboard.js"></script>
-<script src="entregas.js"></script>
-<script src="accesos.js"></script>
-<script src="asociaciones.js"></script>
-<script src="configuracion.js"></script>
+<script>
+// ============================================================
+// app.js
+// ============================================================
+// ============================================================
+// RECIRCULA 360 — app.js
+// Constantes, API, navegación, helpers globales
+// ============================================================
+
+// ── Constantes ───────────────────────────────────────────────
+const SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbzoOqPPbbOGh894CiDXny-8l44vp7JhluXcdORGz6s4dx_JDgOSX2ZXsPpGxfBJ59XK/exec';
+const G_CLIENT_ID  = '783730193199-d7nhahv3ou4rmps7nrpoop5cpor079ej.apps.googleusercontent.com';
+const DOMAIN       = 'redesconrostro.org';
+const DRIVE_FOLDER_ROOT = '1AQyBa9AAdVzukBaZxWa7jpSN2DYkoFhv';
+
+// ── Estado global ────────────────────────────────────────────
+let SESSION      = null;
+let ACCESS_TOKEN = null;
+let TOKEN_EXPIRY = 0;
+
+// Catálogos en memoria (se cargan al iniciar)
+let CAT = {
+  asociaciones: [],
+  compradores:  [],
+  materiales:   [],
+  accesos:      [],
+};
+
+// ============================================================
+// LOGIN / OAUTH
+// ============================================================
+
+function iniciarLogin() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: G_CLIENT_ID,
+    scope: 'email profile https://www.googleapis.com/auth/drive.file',
+    callback: async (resp) => {
+      if (resp.error) { showToast('Error al iniciar sesión'); return; }
+      ACCESS_TOKEN = resp.access_token;
+      TOKEN_EXPIRY = Date.now() + (resp.expires_in - 60) * 1000;
+      await verificarUsuario();
+    },
+  });
+  client.requestAccessToken();
+}
+
+async function verificarUsuario() {
+  mostrarLoading();
+  try {
+    // Obtener info del usuario desde Google
+    const res  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + ACCESS_TOKEN }
+    });
+    const info = await res.json();
+
+    // Validar dominio
+    if (!info.email.endsWith('@' + DOMAIN)) {
+      showToast('Solo cuentas @' + DOMAIN + ' tienen acceso');
+      mostrarLogin();
+      return;
+    }
+
+    // Verificar usuario en el Sheet
+    const data = await apiGet({ action: 'getUsuario', email: info.email });
+    if (!data.ok) {
+      showToast('Usuario no autorizado. Contacta al administrador.');
+      mostrarLogin();
+      return;
+    }
+
+    SESSION = {
+      nombre: data.data.nombre || info.given_name,
+      email:  info.email,
+      rol:    data.data.rol,
+      foto:   info.picture,
+    };
+
+    // Guardar sesión
+    sessionStorage.setItem('rcr_session',   JSON.stringify(SESSION));
+    sessionStorage.setItem('rcr_token',     ACCESS_TOKEN);
+    sessionStorage.setItem('rcr_token_exp', TOKEN_EXPIRY);
+
+    await iniciarApp();
+  } catch (e) {
+    console.error(e);
+    showToast('Error de conexión. Intenta de nuevo.');
+    mostrarLogin();
+  }
+}
+
+function recuperarSesion() {
+  const s   = sessionStorage.getItem('rcr_session');
+  const t   = sessionStorage.getItem('rcr_token');
+  const exp = sessionStorage.getItem('rcr_token_exp');
+  if (s && t && exp && Date.now() < parseInt(exp)) {
+    SESSION      = JSON.parse(s);
+    ACCESS_TOKEN = t;
+    TOKEN_EXPIRY = parseInt(exp);
+    return true;
+  }
+  return false;
+}
+
+function cerrarSesion() {
+  sessionStorage.clear();
+  SESSION      = null;
+  ACCESS_TOKEN = null;
+  CAT          = { asociaciones: [], compradores: [], materiales: [], accesos: [] };
+  mostrarLogin();
+  try { google.accounts.id.disableAutoSelect(); } catch(e) {}
+}
+
+// ============================================================
+// INICIAR APP
+// ============================================================
+
+async function iniciarApp() {
+  // Iniciales del avatar
+  const iniciales = SESSION.nombre
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+
+  document.getElementById('user-avatar').textContent = iniciales;
+  document.getElementById('user-name').textContent   = SESSION.nombre;
+  document.getElementById('user-role').textContent   = SESSION.rol;
+
+  // Mostrar Configuración solo para Admin
+  if (SESSION.rol === 'Admin') {
+    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+  }
+
+  // Cargar catálogos
+  await cargarCatalogos();
+
+  // Mostrar app e ir al dashboard
+  mostrarApp();
+  navTo('dashboard');
+}
+
+async function cargarCatalogos() {
+  try {
+    const [asos, coms, mats, accs] = await Promise.all([
+      apiGet({ action: 'getAsociaciones' }),
+      apiGet({ action: 'getCompradores' }),
+      apiGet({ action: 'getMateriales' }),
+      apiGet({ action: 'getAccesos', rol: SESSION.rol }),
+    ]);
+    if (asos.ok) CAT.asociaciones = asos.data;
+    if (coms.ok) CAT.compradores  = coms.data;
+    if (mats.ok) CAT.materiales   = mats.data;
+    if (accs.ok) CAT.accesos      = accs.data;
+  } catch(e) {
+    console.error('Error cargando catálogos:', e);
+  }
+}
+
+// ============================================================
+// NAVEGACIÓN
+// ============================================================
+
+function navTo(seccion) {
+  // Actualizar sidebar
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + seccion);
+  if (navEl) navEl.classList.add('active');
+
+  // Títulos por sección
+  const titulos = {
+    dashboard:     { titulo: 'Dashboard ambiental',        sub: null },
+    entregas:      { titulo: 'Entregas',                   sub: 'Registro de entregas de material' },
+    asociaciones:  { titulo: 'Asociaciones',               sub: 'Gestión de asociaciones recicladores' },
+    accesos:       { titulo: 'Accesos',                    sub: 'Links y recursos del equipo' },
+    configuracion: { titulo: 'Configuración',              sub: 'Solo administradores' },
+  };
+
+  const info = titulos[seccion] || { titulo: seccion, sub: '' };
+  document.getElementById('topbar-title').textContent = info.titulo;
+  document.getElementById('topbar-sub').textContent   =
+    seccion === 'dashboard'
+      ? 'Bienvenido, ' + SESSION.nombre.split(' ')[0] + ' 👋'
+      : (info.sub || '');
+
+  // Limpiar contenido y acciones
+  document.getElementById('main-content').innerHTML    = '';
+  document.getElementById('topbar-actions').innerHTML  = '';
+
+  // Renderizar sección
+  switch (seccion) {
+    case 'dashboard':     renderDashboard();     break;
+    case 'entregas':      renderEntregas();      break;
+    case 'asociaciones':  renderAsociaciones();  break;
+    case 'accesos':       renderAccesos();       break;
+    case 'configuracion': renderConfiguracion(); break;
+    default:
+      document.getElementById('main-content').innerHTML =
+        '<div class="card"><p style="color:var(--tm)">Sección no encontrada.</p></div>';
+  }
+}
+
+// ============================================================
+// API HELPERS
+// ============================================================
+
+async function apiGet(params) {
+  const qs  = new URLSearchParams(params).toString();
+  const res = await fetch(SCRIPT_URL + '?' + qs);
+  if (!res.ok) throw new Error('Error HTTP ' + res.status);
+  return res.json();
+}
+
+async function apiPost(body) {
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    body:   JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error('Error HTTP ' + res.status);
+  return res.json();
+}
+
+// Subir archivo directo a Drive con token OAuth
+async function subirDrive(file, folderId, nombre) {
+  const metadata = {
+    name:    nombre || file.name,
+    parents: [folderId],
+  };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', file);
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+    {
+      method:  'POST',
+      headers: { Authorization: 'Bearer ' + ACCESS_TOKEN },
+      body:    form,
+    }
+  );
+  return res.json();
+}
+
+// ============================================================
+// UI HELPERS
+// ============================================================
+
+function mostrarLogin() {
+  document.getElementById('screen-login').classList.remove('hidden');
+  document.getElementById('screen-loading').classList.add('hidden');
+  document.getElementById('screen-app').classList.add('hidden');
+}
+
+function mostrarLoading() {
+  document.getElementById('screen-login').classList.add('hidden');
+  document.getElementById('screen-loading').classList.remove('hidden');
+  document.getElementById('screen-app').classList.add('hidden');
+}
+
+function mostrarApp() {
+  document.getElementById('screen-login').classList.add('hidden');
+  document.getElementById('screen-loading').classList.add('hidden');
+  document.getElementById('screen-app').classList.remove('hidden');
+}
+
+function showToast(msg, dur = 3500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ── Modales ──────────────────────────────────────────────────
+function abrirModal(html) {
+  cerrarModal(); // cerrar cualquier modal abierto
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id        = 'modal-overlay';
+  overlay.innerHTML = html;
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) cerrarModal();
+  });
+  document.body.appendChild(overlay);
+}
+
+function cerrarModal() {
+  const m = document.getElementById('modal-overlay');
+  if (m) m.remove();
+}
+
+// ── Formateo ─────────────────────────────────────────────────
+function fmtNum(n, dec = 2) {
+  if (!n && n !== 0) return '—';
+  return parseFloat(n).toLocaleString('es-EC', {
+    minimumFractionDigits: dec,
+    maximumFractionDigits: dec,
+  });
+}
+
+function fmtMoney(n) {
+  if (!n && n !== 0) return '—';
+  return '$' + parseFloat(n).toLocaleString('es-EC', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function fmtTN(n) {
+  if (!n && n !== 0) return '—';
+  return fmtNum(n) + ' TN';
+}
+
+function fmtFecha(f) {
+  if (!f) return '—';
+  const d = new Date(f);
+  if (isNaN(d)) return f;
+  return d.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// ── Helpers de listas ─────────────────────────────────────────
+function optionsFromArray(arr, valField, labelField, selectedVal = '') {
+  return arr.map(item =>
+    `<option value="${item[valField]}" ${item[valField] === selectedVal ? 'selected' : ''}>
+      ${item[labelField]}
+    </option>`
+  ).join('');
+}
+
+// ── Nivel de intermediación → badge ──────────────────────────
+function nivelBadge(nivel) {
+  const map = {
+    'Nivel 1': 'badge-blue',
+    'Nivel 2': 'badge-green',
+    'Nivel 3': 'badge-warn',
+    'Transformador': 'badge-cyan',
+  };
+  const cls = map[nivel] || 'badge-blue';
+  return `<span class="badge ${cls}">${nivel || '—'}</span>`;
+}
+
+// ============================================================
+// INICIO — verificar sesión al cargar
+// ============================================================
+window.addEventListener('load', async () => {
+  if (recuperarSesion()) {
+    mostrarLoading();
+    await cargarCatalogos();
+    mostrarApp();
+
+    // Reconstruir UI del usuario
+    const iniciales = SESSION.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('user-avatar').textContent = iniciales;
+    document.getElementById('user-name').textContent   = SESSION.nombre;
+    document.getElementById('user-role').textContent   = SESSION.rol;
+    if (SESSION.rol === 'Admin') {
+      document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+    }
+
+    navTo('dashboard');
+  } else {
+    mostrarLogin();
+  }
+});
+
+
+// ============================================================
+// dashboard.js
+// ============================================================
+// ============================================================
+// RECIRCULA 360 — dashboard.js
+// Dashboard ambiental: Operativo e Histórico
+// ============================================================
+
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+               'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+const PROVINCIAS = ['El Oro','Guayas','Manabí','Sucumbíos','Pichincha','Chimborazo'];
+
+const COLORES_PROV = {
+  'El Oro':     '#002343',
+  'Guayas':     '#00bda4',
+  'Manabí':     '#079fff',
+  'Sucumbíos':  '#f5ad21',
+  'Pichincha':  '#9fda60',
+  'Chimborazo': '#f82d72',
+};
+
+// Metas anuales
+const METAS = { PET: 811, Suave: 248, Duro: 377 };
+
+// Estado del dashboard
+let DASH_FILTROS = { anio: '', mes: '', provincia: '', ciudad: '', asociacion: '' };
+let DASH_DATA    = null;
+let DASH_TAB     = 'operativo';
+
+// ============================================================
+// RENDER PRINCIPAL
+// ============================================================
+
+async function renderDashboard() {
+  const content = document.getElementById('main-content');
+
+  content.innerHTML = `
+    <div class="filters-bar" id="dash-filters">
+      <span class="filter-label-inline"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
+      <div class="filter-divider"></div>
+      <select class="filter-select-sm" id="f-anio" onchange="aplicarFiltro('anio',this.value)">
+        <option value="">Todos los años</option>
+      </select>
+      <select class="filter-select-sm" id="f-mes" onchange="aplicarFiltro('mes',this.value)">
+        <option value="">Todos los meses</option>
+        ${MESES.map(m => `<option value="${m}">${m}</option>`).join('')}
+      </select>
+      <select class="filter-select-sm" id="f-provincia" onchange="aplicarFiltro('provincia',this.value)">
+        <option value="">Todas las provincias</option>
+        ${PROVINCIAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+      </select>
+      <select class="filter-select-sm" id="f-ciudad" onchange="aplicarFiltro('ciudad',this.value)">
+        <option value="">Todas las ciudades</option>
+      </select>
+      <select class="filter-select-sm" id="f-asociacion" onchange="aplicarFiltro('asociacion',this.value)">
+        <option value="">Todas las asociaciones</option>
+        ${CAT.asociaciones.map(a => `<option value="${a['ID_Asociacion']}">${a['Nombre']}</option>`).join('')}
+      </select>
+      <button class="btn-reset-filters" onclick="resetFiltros()">
+        <i class="ti ti-x"></i> Limpiar
+      </button>
+    </div>
+
+    <div class="tabs-bar">
+      <button class="tab-btn active" id="tab-operativo" onclick="switchDashTab('operativo')">
+        <i class="ti ti-chart-bar"></i> Operativo
+      </button>
+      <button class="tab-btn" id="tab-historico" onclick="switchDashTab('historico')">
+        <i class="ti ti-history"></i> Histórico
+      </button>
+    </div>
+
+    <div id="dash-tab-content">
+      <div style="display:flex;align-items:center;justify-content:center;padding:60px;gap:16px">
+        <div class="spinner"></div>
+        <span style="color:var(--tm);font-size:14px">Cargando datos...</span>
+      </div>
+    </div>
+  `;
+
+  await cargarDashboard();
+}
+
+// ============================================================
+// CARGAR DATOS
+// ============================================================
+
+async function cargarDashboard() {
+  try {
+    const res = await apiGet({ action: 'getDashboard', ...DASH_FILTROS });
+    if (!res.ok) { showToast('Error cargando dashboard'); return; }
+    DASH_DATA = res.data;
+    poblarFiltrosDisponibles(DASH_DATA.filtrosDisponibles);
+    renderDashTab();
+  } catch(e) {
+    console.error(e);
+    showToast('Error de conexión');
+  }
+}
+
+function poblarFiltrosDisponibles(f) {
+  if (!f) return;
+  const selAnio = document.getElementById('f-anio');
+  if (selAnio && f.anios) {
+    const cur = DASH_FILTROS.anio;
+    selAnio.innerHTML = '<option value="">Todos los años</option>' +
+      f.anios.map(a => `<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
+  }
+  const selCiudad = document.getElementById('f-ciudad');
+  if (selCiudad && f.ciudades) {
+    const cur = DASH_FILTROS.ciudad;
+    selCiudad.innerHTML = '<option value="">Todas las ciudades</option>' +
+      f.ciudades.map(c => `<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
+}
+
+function aplicarFiltro(campo, valor) {
+  DASH_FILTROS[campo] = valor;
+  cargarDashboard();
+}
+
+function resetFiltros() {
+  DASH_FILTROS = { anio: '', mes: '', provincia: '', ciudad: '', asociacion: '' };
+  ['f-anio','f-mes','f-provincia','f-ciudad','f-asociacion'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  cargarDashboard();
+}
+
+// ============================================================
+// PESTAÑAS
+// ============================================================
+
+function switchDashTab(tab) {
+  DASH_TAB = tab;
+  document.getElementById('tab-operativo').className = 'tab-btn' + (tab==='operativo'?' active':'');
+  document.getElementById('tab-historico').className = 'tab-btn' + (tab==='historico'?' active':'');
+  renderDashTab();
+}
+
+function renderDashTab() {
+  if (!DASH_DATA) return;
+  if (DASH_TAB === 'operativo') renderOperativo();
+  else renderHistorico();
+}
+
+// ============================================================
+// OPERATIVO
+// ============================================================
+
+function renderOperativo() {
+  const d = DASH_DATA;
+  const k = d.kpis;
+  const pctPET   = METAS.PET   > 0 ? Math.min((k.tnPET   / METAS.PET)   * 100, 100) : 0;
+  const pctSuave = METAS.Suave > 0 ? Math.min((k.tnSuave / METAS.Suave) * 100, 100) : 0;
+  const pctDuro  = METAS.Duro  > 0 ? Math.min((k.tnDuro  / METAS.Duro)  * 100, 100) : 0;
+
+  document.getElementById('dash-tab-content').innerHTML = `
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+      <div class="kpi-card">
+        <div class="kpi-label">Total TN recuperadas</div>
+        <div class="kpi-value">${fmtNum(k.totalTN)} <span class="kpi-unit">TN</span></div>
+        <div class="kpi-note">Todos los materiales</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">TN priorizables</div>
+        <div class="kpi-value">${fmtNum(k.tnPriorizables)} <span class="kpi-unit">TN</span></div>
+        <div class="kpi-note">PET + Suave + Duro</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ingresos venta PET</div>
+        <div class="kpi-value">${fmtMoney(k.ingresosPET)}</div>
+        <div class="kpi-note">Valor generado</div>
+      </div>
+    </div>
+
+    <div class="dash-charts-row">
+      <div class="card">
+        <div class="card-title">TN recuperadas por material</div>
+        ${renderDonut(d.distribucion)}
+      </div>
+      <div class="card">
+        <div class="card-title">Avance vs meta anual</div>
+        <div class="cylinders-wrap">
+          ${renderCilindro('PET', k.tnPET, METAS.PET, pctPET, 'linear-gradient(180deg,#0778bf,#002343)')}
+          ${renderCilindro('Duro', k.tnDuro, METAS.Duro, pctDuro, 'linear-gradient(180deg,#079fff,#86d2da)')}
+          ${renderCilindro('Suave', k.tnSuave, METAS.Suave, pctSuave, 'linear-gradient(180deg,#5bbd70,#00bda4)')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">TN PET mensual por provincia</div>
+        ${renderLineChart(d.porProvMes, d.meses)}
+      </div>
+    </div>
+
+    <div class="dash-bottom-row">
+      <div class="card">
+        <div class="card-title">
+          Ranking compradores · PET
+          <span class="card-tag">${d.ranking.length} compradores</span>
+        </div>
+        ${renderRanking(d.ranking)}
+      </div>
+      <div class="card">
+        <div class="card-title">
+          Colectivos beneficiarios
+          <span class="card-tag">${d.colectivos.length} asociaciones</span>
+        </div>
+        <div class="asoc-grid">
+          ${d.colectivos.map(c => `<div class="asoc-chip" title="${c}">${c}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Donut ──────────────────────────────────────────────────
+function renderDonut(dist) {
+  const colores = {
+    'PET': '#002343', 'Plástico Duro': '#079fff', 'Plástico Suave': '#00bda4',
+    'Cartón': '#f5ad21', 'Lata/Aluminio': '#9fda60', 'Vidrio': '#86d2da',
+    'Chatarra': '#5bbd70', 'Cobre': '#f82d72', 'Otros': '#dde4ea',
+  };
+  const total = Object.values(dist).reduce((s, v) => s + (v || 0), 0);
+  if (total === 0) return '<p style="color:var(--tl);font-size:13px">Sin datos</p>';
+
+  const r = 55, cx = 65, cy = 65, circum = 2 * Math.PI * r;
+  let offset = 0;
+  const segs = Object.entries(dist).filter(([,v]) => v > 0).map(([nombre, valor]) => {
+    const dash = (valor / total) * circum;
+    const seg  = { nombre, valor, dash, offset, color: colores[nombre] || '#ccc' };
+    offset += dash;
+    return seg;
+  });
+
+  const circles = segs.map(s =>
+    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}"
+      stroke-width="20" stroke-dasharray="${s.dash} ${circum - s.dash}"
+      stroke-dashoffset="${-s.offset}" transform="rotate(-90 ${cx} ${cy})"/>`
+  ).join('');
+
+  const leyenda = segs.map(s =>
+    `<div class="legend-item"><div class="legend-dot" style="background:${s.color}"></div>${s.nombre} · ${fmtNum(s.valor)} TN</div>`
+  ).join('');
+
+  return `
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="position:relative;flex-shrink:0">
+        <svg width="130" height="130" viewBox="0 0 130 130">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#eef2f6" stroke-width="20"/>
+          ${circles}
+        </svg>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+          <div style="font-size:14px;font-weight:700;color:var(--b1)">${fmtNum(total)}</div>
+          <div style="font-size:9px;color:var(--tm)">TN total</div>
+        </div>
+      </div>
+      <div class="chart-legend" style="flex-direction:column;gap:5px">${leyenda}</div>
+    </div>`;
+}
+
+// ── Cilindro ──────────────────────────────────────────────
+function renderCilindro(nombre, actual, meta, pct, gradient) {
+  const pctLabel = meta > 0 ? ((actual / meta) * 100).toFixed(0) + '%' : '—';
+  return `
+    <div class="cyl-item">
+      <div class="cyl-pct">${pctLabel}</div>
+      <div class="cyl-outer">
+        <div class="cyl-fill" style="height:${Math.min(pct,100)}%;background:${gradient}"></div>
+      </div>
+      <div class="cyl-name">${nombre}</div>
+      <div style="font-size:9px;color:var(--tl);margin-top:2px">${fmtNum(actual)} / ${meta} TN</div>
+    </div>`;
+}
+
+// ── Líneas por provincia ──────────────────────────────────
+function renderLineChart(porProvMes, meses) {
+  const W = 280, H = 85;
+  const provConDatos = PROVINCIAS.filter(p => meses.some(m => porProvMes[p]?.[m] > 0));
+  if (!provConDatos.length) return '<p style="color:var(--tl);font-size:13px">Sin datos</p>';
+
+  let max = 0;
+  provConDatos.forEach(p => meses.forEach(m => { if ((porProvMes[p]?.[m]||0) > max) max = porProvMes[p][m]; }));
+  if (max === 0) max = 1;
+  const stepX = W / (meses.length - 1);
+
+  const lineas = provConDatos.map(p => {
+    const pts = meses.map((m,i) => `${i*stepX},${H - ((porProvMes[p]?.[m]||0)/max)*(H-8)-4}`).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="${COLORES_PROV[p]}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+  }).join('');
+
+  const labels = [0,2,4,6,8,10,11].map(i =>
+    `<text x="${i*stepX}" y="${H+13}" font-size="8" fill="#9aafbe" text-anchor="middle">${(meses[i]||'').substring(0,3)}</text>`
+  ).join('');
+
+  const leyenda = provConDatos.map(p =>
+    `<div class="legend-item"><div class="legend-line" style="background:${COLORES_PROV[p]}"></div>${p}</div>`
+  ).join('');
+
+  return `
+    <svg width="100%" viewBox="0 0 ${W} ${H+18}" style="overflow:visible">${lineas}${labels}</svg>
+    <div class="chart-legend" style="margin-top:8px">${leyenda}</div>`;
+}
+
+// ── Ranking ───────────────────────────────────────────────
+function renderRanking(ranking) {
+  if (!ranking?.length) return '<p style="color:var(--tl);font-size:13px">Sin datos</p>';
+  const maxTN = ranking[0]?.tnPET || 1;
+  const filas = ranking.map(c => `
+    <tr>
+      <td style="font-weight:700;color:var(--b1)">${c.ranking}</td>
+      <td>${c.nombre}</td>
+      <td>${nivelBadge(c.nivel)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ranking-bar-bg"><div class="ranking-bar-fill" style="width:${(c.tnPET/maxTN)*100}%"></div></div>
+          <span style="font-size:11.5px;font-weight:600;white-space:nowrap">${fmtNum(c.tnPET)} TN</span>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--tm)">$${fmtNum(c.precioPETprom,2)}/kg</td>
+    </tr>`).join('');
+
+  return `<div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Comprador</th><th>Nivel</th><th>TN PET</th><th>Precio prom.</th></tr></thead>
+    <tbody>${filas}</tbody>
+  </table></div>`;
+}
+
+// ============================================================
+// HISTÓRICO
+// ============================================================
+
+async function renderHistorico() {
+  document.getElementById('dash-tab-content').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:center;padding:40px;gap:16px">
+      <div class="spinner"></div><span style="color:var(--tm)">Cargando histórico...</span>
+    </div>`;
+
+  try {
+    const res = await apiGet({ action: 'getHistorico' });
+    if (!res.ok) { showToast('Error cargando histórico'); return; }
+    const h = res.data;
+
+    document.getElementById('dash-tab-content').innerHTML = `
+      <div style="background:#fff;border-radius:var(--radius-md);padding:10px 16px;border:1px solid var(--border);text-align:center">
+        <div style="font-size:11px;font-weight:700;color:var(--b1);text-transform:uppercase;letter-spacing:.06em">
+          Ficha de información primaria comercial histórica de materiales priorizables
+        </div>
+      </div>
+      <div class="dash-hist-grid">
+        ${renderBarrasAnio(h.anios, h.porAnio, 'PET', '#5bbd70')}
+        ${renderBarrasAnio(h.anios, h.porAnio, 'Suave', '#0778bf')}
+        ${renderBarrasAnio(h.anios, h.porAnio, 'Duro', '#079fff')}
+      </div>
+      <div class="card">
+        <div class="card-title">TN PET por provincia · evolución histórica</div>
+        ${renderLineHistorico(h.anios, h.porProvAnio)}
+      </div>`;
+  } catch(e) {
+    console.error(e);
+    showToast('Error cargando histórico');
+  }
+}
+
+function renderBarrasAnio(anios, porAnio, material, color) {
+  if (!anios?.length) return `<div class="card"><div class="card-title">TN ${material}</div><p style="color:var(--tl)">Sin datos</p></div>`;
+  const H  = 90;
+  const maxVal = Math.max(...anios.map(a => porAnio[a]?.[material] || 0), 1);
+  const titulo = material === 'Suave' ? 'Plástico suave' : material === 'Duro' ? 'Plástico duro' : 'PET';
+
+  const grupos = anios.map(a => {
+    const val = porAnio[a]?.[material] || 0;
+    const h   = (val / maxVal) * H;
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+        <div style="height:${H}px;display:flex;align-items:flex-end">
+          <div style="width:18px;height:${h}px;border-radius:3px 3px 0 0;background:${color}"></div>
+        </div>
+        <div style="font-size:8.5px;color:var(--tl)">${a}</div>
+        <div style="font-size:9.5px;font-weight:600;color:var(--b1)">${fmtNum(val,0)}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="card">
+      <div class="card-title">TN ${titulo}</div>
+      <div style="display:flex;align-items:flex-end;gap:12px;justify-content:center;flex-wrap:wrap">${grupos}</div>
+    </div>`;
+}
+
+function renderLineHistorico(anios, porProvAnio) {
+  if (!anios || anios.length < 2) return '<p style="color:var(--tl);font-size:13px">Se necesitan al menos 2 años de datos</p>';
+  const W = 500, H = 90;
+  const stepX = W / (anios.length - 1);
+  const provConDatos = PROVINCIAS.filter(p => anios.some(a => (porProvAnio[p]?.[a] || 0) > 0));
+
+  let max = 0;
+  provConDatos.forEach(p => anios.forEach(a => { if ((porProvAnio[p]?.[a]||0) > max) max = porProvAnio[p][a]; }));
+  if (max === 0) max = 1;
+
+  const lineas = provConDatos.map(p => {
+    const pts = anios.map((a,i) => `${i*stepX},${H - ((porProvAnio[p]?.[a]||0)/max)*(H-8)-4}`).join(' ');
+    const dots = anios.map((a,i) => `<circle cx="${i*stepX}" cy="${H-((porProvAnio[p]?.[a]||0)/max)*(H-8)-4}" r="3.5" fill="${COLORES_PROV[p]}"/>`).join('');
+    return `<polyline points="${pts}" fill="none" stroke="${COLORES_PROV[p]}" stroke-width="2" stroke-linejoin="round"/>${dots}`;
+  }).join('');
+
+  const labels = anios.map((a,i) =>
+    `<text x="${i*stepX}" y="${H+14}" font-size="9" fill="#9aafbe" text-anchor="middle">${a}</text>`
+  ).join('');
+
+  const leyenda = provConDatos.map(p =>
+    `<div class="legend-item"><div class="legend-line" style="background:${COLORES_PROV[p]}"></div>${p}</div>`
+  ).join('');
+
+  return `
+    <svg width="100%" viewBox="0 0 ${W} ${H+20}" style="overflow:visible">${lineas}${labels}</svg>
+    <div class="chart-legend" style="margin-top:10px">${leyenda}</div>`;
+}
+
+
+// ============================================================
+// entregas.js
+// ============================================================
+// ============================================================
+// RECIRCULA 360 — entregas.js
+// Registro y tabla de entregas de material
+// ============================================================
+
+let ENTREGAS_DATA = [];
+let ENTREGAS_FILTROS = { anio: '', mes: '', asociacion: '' };
+
+// ============================================================
+// RENDER PRINCIPAL
+// ============================================================
+
+async function renderEntregas() {
+  // Botón nueva entrega en topbar
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="abrirFormEntrega()">
+      <i class="ti ti-plus"></i> Nueva entrega
+    </button>
+  `;
+
+  const content = document.getElementById('main-content');
+  content.innerHTML = `
+    <!-- Filtros -->
+    <div class="filters-bar">
+      <span class="filter-label-inline"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
+      <div class="filter-divider"></div>
+      <select class="filter-select-sm" id="ef-anio" onchange="filtrarEntregas('anio',this.value)">
+        <option value="">Todos los años</option>
+      </select>
+      <select class="filter-select-sm" id="ef-mes" onchange="filtrarEntregas('mes',this.value)">
+        <option value="">Todos los meses</option>
+        ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+          .map(m => `<option value="${m}">${m}</option>`).join('')}
+      </select>
+      <select class="filter-select-sm" id="ef-asociacion" onchange="filtrarEntregas('asociacion',this.value)">
+        <option value="">Todas las asociaciones</option>
+        ${CAT.asociaciones.map(a => `<option value="${a['ID_Asociacion']}">${a['Nombre']}</option>`).join('')}
+      </select>
+      <button class="btn-reset-filters" onclick="resetFiltrosEntregas()">
+        <i class="ti ti-x"></i> Limpiar
+      </button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card" style="padding:0">
+      <div id="entregas-table-wrap" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:14px;padding:40px;justify-content:center">
+          <div class="spinner"></div>
+          <span style="color:var(--tm)">Cargando entregas...</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  await cargarEntregas();
+}
+
+// ============================================================
+// CARGAR ENTREGAS
+// ============================================================
+
+async function cargarEntregas() {
+  try {
+    const res = await apiGet({ action: 'getEntregas', ...ENTREGAS_FILTROS });
+    if (!res.ok) { showToast('Error cargando entregas'); return; }
+    ENTREGAS_DATA = res.data;
+
+    // Poblar filtro de años
+    const anios = [...new Set(ENTREGAS_DATA.map(r => String(r['Año'])).filter(Boolean))].sort();
+    const selAnio = document.getElementById('ef-anio');
+    if (selAnio) {
+      const cur = ENTREGAS_FILTROS.anio;
+      selAnio.innerHTML = '<option value="">Todos los años</option>' +
+        anios.map(a => `<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
+    }
+
+    renderTablaEntregas();
+  } catch(e) {
+    console.error(e);
+    showToast('Error de conexión');
+  }
+}
+
+function filtrarEntregas(campo, valor) {
+  ENTREGAS_FILTROS[campo] = valor;
+  cargarEntregas();
+}
+
+function resetFiltrosEntregas() {
+  ENTREGAS_FILTROS = { anio: '', mes: '', asociacion: '' };
+  ['ef-anio','ef-mes','ef-asociacion'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  cargarEntregas();
+}
+
+// ============================================================
+// TABLA DE ENTREGAS
+// ============================================================
+
+function renderTablaEntregas() {
+  const wrap = document.getElementById('entregas-table-wrap');
+  if (!wrap) return;
+
+  if (!ENTREGAS_DATA.length) {
+    wrap.innerHTML = `
+      <div style="text-align:center;padding:50px;color:var(--tl)">
+        <i class="ti ti-package" style="font-size:40px;display:block;margin-bottom:12px"></i>
+        No hay entregas registradas
+      </div>`;
+    return;
+  }
+
+  const filas = ENTREGAS_DATA.map(e => {
+    const petKg    = parseFloat(e['PET Kilos'] || 0);
+    const suaveKg  = parseFloat(e['Plástico Suave Kilos'] || 0);
+    const duroKg   = parseFloat(e['Plástico Duro Kilos'] || 0);
+    const total    = parseFloat(e['Valor Total'] || 0);
+    const tieneCarpeta = e['ID_Carpeta_Evidencia'];
+
+    return `
+      <tr>
+        <td style="font-size:12px;color:var(--tm)">${fmtFecha(e['Fecha'])}</td>
+        <td style="font-weight:500">${e['_nombreAsociacion'] || '—'}</td>
+        <td>${e['_nombreComprador'] || '—'}</td>
+        <td>${nivelBadge(e['_nivelComprador'] || e['Nivel Intermediacion'])}</td>
+        <td style="text-align:right;font-weight:600">${fmtNum(petKg)} kg</td>
+        <td style="text-align:right">${fmtNum(suaveKg)} kg</td>
+        <td style="text-align:right">${fmtNum(duroKg)} kg</td>
+        <td style="text-align:right;font-weight:700;color:var(--g2)">${fmtMoney(total)}</td>
+        <td>
+          ${tieneCarpeta
+            ? `<a href="https://drive.google.com/drive/folders/${e['ID_Carpeta_Evidencia']}" target="_blank" class="btn btn-glass btn-sm"><i class="ti ti-folder"></i></a>`
+            : '<span style="color:var(--tl);font-size:12px">—</span>'
+          }
+        </td>
+        <td>
+          <div class="td-actions">
+            <button class="btn btn-glass btn-sm" onclick="verEntrega('${e['ID_Entrega']}')">
+              <i class="ti ti-eye"></i>
+            </button>
+            ${SESSION.rol !== 'Visualizador' ? `
+            <button class="btn btn-primary btn-sm" onclick="editarEntrega('${e['ID_Entrega']}')">
+              <i class="ti ti-pencil"></i>
+            </button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Asociación</th>
+            <th>Comprador</th>
+            <th>Nivel</th>
+            <th style="text-align:right">PET kg</th>
+            <th style="text-align:right">Suave kg</th>
+            <th style="text-align:right">Duro kg</th>
+            <th style="text-align:right">Valor total</th>
+            <th>Evidencia</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;font-size:12px;color:var(--tl);text-align:right">
+      ${ENTREGAS_DATA.length} registro${ENTREGAS_DATA.length !== 1 ? 's' : ''}
+    </div>`;
+}
+
+// ============================================================
+// VER ENTREGA (modal detalle)
+// ============================================================
+
+function verEntrega(id) {
+  const e = ENTREGAS_DATA.find(r => r['ID_Entrega'] === id);
+  if (!e) return;
+
+  const materiales = [
+    'PET','Plástico Suave','Plástico Duro','Lata Aluminio',
+    'Vidrio','Cartón','Chatarra','Cobre','Papel Archivo','Periódico','Soplado','Tetrapak'
+  ];
+
+  const filasMat = materiales
+    .filter(m => parseFloat(e[m + ' Kilos'] || 0) > 0)
+    .map(m => {
+      const kg    = parseFloat(e[m + ' Kilos'] || 0);
+      const precio = parseFloat(e[m + ' Precio'] || 0);
+      const venta  = parseFloat(e[m + ' Valor Venta'] || 0);
+      const esPrio = ['PET','Plástico Suave','Plástico Duro'].includes(m);
+      return `
+        <tr>
+          <td style="${esPrio ? 'font-weight:600;color:var(--b1)' : ''}">${m}</td>
+          <td style="text-align:right">${fmtNum(kg)} kg</td>
+          <td style="text-align:right">$${fmtNum(precio,2)}/kg</td>
+          <td style="text-align:right;font-weight:600;color:var(--g2)">${fmtMoney(venta)}</td>
+        </tr>`;
+    }).join('');
+
+  abrirModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">Detalle de entrega</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2" style="margin-bottom:16px">
+          <div>
+            <div class="form-label">Fecha</div>
+            <div style="font-size:14px">${fmtFecha(e['Fecha'])}</div>
+          </div>
+          <div>
+            <div class="form-label">Año / Mes</div>
+            <div style="font-size:14px">${e['Año']} · ${e['Mes']}</div>
+          </div>
+          <div>
+            <div class="form-label">Asociación</div>
+            <div style="font-size:14px;font-weight:500">${e['_nombreAsociacion'] || '—'}</div>
+          </div>
+          <div>
+            <div class="form-label">Comprador</div>
+            <div style="font-size:14px">${e['_nombreComprador'] || '—'}</div>
+          </div>
+          <div>
+            <div class="form-label">Nivel intermediación</div>
+            <div>${nivelBadge(e['Nivel Intermediacion'])}</div>
+          </div>
+          <div>
+            <div class="form-label">Valor total</div>
+            <div style="font-size:18px;font-weight:700;color:var(--g2)">${fmtMoney(e['Valor Total'])}</div>
+          </div>
+        </div>
+
+        <div class="materiales-section">
+          <div class="materiales-section-title">Materiales entregados</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Material</th><th style="text-align:right">Kilos</th><th style="text-align:right">Precio</th><th style="text-align:right">Valor venta</th></tr>
+              </thead>
+              <tbody>${filasMat}</tbody>
+            </table>
+          </div>
+        </div>
+
+        ${e['Observaciones'] ? `
+          <div style="margin-top:14px">
+            <div class="form-label">Observaciones</div>
+            <div style="font-size:13px;color:var(--tm)">${e['Observaciones']}</div>
+          </div>` : ''}
+
+        ${e['ID_Carpeta_Evidencia'] ? `
+          <div style="margin-top:14px">
+            <a href="https://drive.google.com/drive/folders/${e['ID_Carpeta_Evidencia']}" target="_blank" class="btn btn-glass">
+              <i class="ti ti-folder"></i> Ver evidencias en Drive
+            </a>
+          </div>` : ''}
+      </div>
+    </div>
+  `);
+}
+
+// ============================================================
+// FORMULARIO NUEVA / EDITAR ENTREGA
+// ============================================================
+
+function abrirFormEntrega(id = null) {
+  const e = id ? ENTREGAS_DATA.find(r => r['ID_Entrega'] === id) : null;
+  const titulo = e ? 'Editar entrega' : 'Nueva entrega';
+
+  const materialesActivos = CAT.materiales.length > 0
+    ? CAT.materiales
+    : [
+        { Nombre: 'PET',             Priorizable: 'Sí' },
+        { Nombre: 'Plástico Suave',  Priorizable: 'Sí' },
+        { Nombre: 'Plástico Duro',   Priorizable: 'Sí' },
+        { Nombre: 'Lata Aluminio',   Priorizable: 'No' },
+        { Nombre: 'Vidrio',          Priorizable: 'No' },
+        { Nombre: 'Cartón',          Priorizable: 'No' },
+        { Nombre: 'Chatarra',        Priorizable: 'No' },
+        { Nombre: 'Cobre',           Priorizable: 'No' },
+        { Nombre: 'Papel Archivo',   Priorizable: 'No' },
+        { Nombre: 'Periódico',       Priorizable: 'No' },
+        { Nombre: 'Soplado',         Priorizable: 'No' },
+        { Nombre: 'Tetrapak',        Priorizable: 'No' },
+      ];
+
+  // Separar priorizables del resto
+  const priorizables = materialesActivos.filter(m => m['Priorizable'] === 'Sí' || m['Priorizable'] === true);
+  const otros        = materialesActivos.filter(m => m['Priorizable'] !== 'Sí' && m['Priorizable'] !== true);
+
+  function filaMaterial(mat) {
+    const nombre = mat['Nombre'];
+    const esPrio = mat['Priorizable'] === 'Sí' || mat['Priorizable'] === true;
+    const kg     = e ? (e[nombre + ' Kilos']  || '') : '';
+    const precio = e ? (e[nombre + ' Precio'] || '') : '';
+    const venta  = e ? (e[nombre + ' Valor Venta'] || 0) : 0;
+    const mid    = nombre.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+    return `
+      <div class="material-row ${esPrio ? 'material-priorizable' : ''}">
+        <div class="material-row-label">${nombre}${esPrio ? ' <span class="badge badge-cyan" style="font-size:9px;padding:1px 6px">Priorizable</span>' : ''}</div>
+        <input type="number" class="form-input" id="mat-kg-${mid}" placeholder="Kilos" value="${kg}" min="0" step="0.01"
+          oninput="calcularValorMaterial('${mid}','${nombre}')">
+        <input type="number" class="form-input" id="mat-precio-${mid}" placeholder="$/kg" value="${precio}" min="0" step="0.01"
+          oninput="calcularValorMaterial('${mid}','${nombre}')">
+        <div class="material-valor" id="mat-venta-${mid}">${venta > 0 ? fmtMoney(venta) : '—'}</div>
+      </div>`;
+  }
+
+  abrirModal(`
+    <div class="modal" style="max-width:680px">
+      <div class="modal-head">
+        <div class="modal-title">${titulo}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Fecha *</label>
+            <input type="date" class="form-input" id="ent-fecha" value="${e?.Fecha ? String(e.Fecha).substring(0,10) : new Date().toISOString().substring(0,10)}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Asociación *</label>
+            <select class="form-select" id="ent-asociacion">
+              <option value="">Selecciona una asociación</option>
+              ${CAT.asociaciones.map(a =>
+                `<option value="${a['ID_Asociacion']}" ${e?.['ID_Asociacion']===a['ID_Asociacion']?'selected':''}>${a['Nombre']}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Comprador *</label>
+            <select class="form-select" id="ent-comprador">
+              <option value="">Selecciona un comprador</option>
+              ${CAT.compradores.map(c =>
+                `<option value="${c['ID_Comprador']}" ${e?.['ID_Comprador']===c['ID_Comprador']?'selected':''}>${c['Nombre']}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nivel intermediación</label>
+            <select class="form-select" id="ent-nivel">
+              ${['Nivel 1','Nivel 2','Nivel 3','Transformador'].map(n =>
+                `<option value="${n}" ${e?.['Nivel Intermediacion']===n?'selected':''}>${n}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+
+        <!-- Materiales priorizables -->
+        <div class="materiales-section" style="margin-bottom:14px">
+          <div class="materiales-section-title">Materiales priorizables</div>
+          <div class="material-row" style="font-size:10px;font-weight:600;color:var(--tl);text-transform:uppercase;margin-bottom:6px">
+            <div>Material</div><div>Kilos</div><div>Precio $/kg</div><div style="text-align:right">Valor venta</div>
+          </div>
+          ${priorizables.map(filaMaterial).join('')}
+        </div>
+
+        <!-- Otros materiales -->
+        <div class="materiales-section">
+          <div class="materiales-section-title">Otros materiales</div>
+          <div class="material-row" style="font-size:10px;font-weight:600;color:var(--tl);text-transform:uppercase;margin-bottom:6px">
+            <div>Material</div><div>Kilos</div><div>Precio $/kg</div><div style="text-align:right">Valor venta</div>
+          </div>
+          ${otros.map(filaMaterial).join('')}
+        </div>
+
+        <!-- Total calculado -->
+        <div style="margin-top:14px;display:flex;justify-content:flex-end;align-items:center;gap:12px">
+          <span style="font-size:13px;color:var(--tm);font-weight:600">VALOR TOTAL:</span>
+          <span id="ent-total" style="font-size:22px;font-weight:700;color:var(--g2)">${e ? fmtMoney(e['Valor Total']) : '$0.00'}</span>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="form-group" style="margin-top:14px">
+          <label class="form-label">Observaciones</label>
+          <textarea class="form-textarea" id="ent-obs" placeholder="Notas adicionales...">${e?.Observaciones || ''}</textarea>
+        </div>
+
+        <!-- Evidencias -->
+        <div class="form-group">
+          <label class="form-label">Evidencias (actas, fotos de pesaje)</label>
+          <input type="file" id="ent-evidencias" multiple accept=".pdf,.jpg,.jpeg,.png,.webp"
+            style="font-size:13px;color:var(--tm)">
+          <div class="form-hint">Se subirán automáticamente a la carpeta Drive de la asociación</div>
+          ${e?.['ID_Carpeta_Evidencia'] ? `
+            <a href="https://drive.google.com/drive/folders/${e['ID_Carpeta_Evidencia']}" target="_blank"
+              class="btn btn-glass btn-sm" style="margin-top:8px">
+              <i class="ti ti-folder"></i> Ver evidencias actuales
+            </a>` : ''}
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-entrega" onclick="guardarEntrega('${id || ''}')">
+          <i class="ti ti-check"></i> ${e ? 'Actualizar' : 'Guardar entrega'}
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+function editarEntrega(id) {
+  abrirFormEntrega(id);
+}
+
+// ── Calcular valor en tiempo real ─────────────────────────
+function calcularValorMaterial(mid, nombre) {
+  const kg     = parseFloat(document.getElementById('mat-kg-' + mid)?.value || 0);
+  const precio = parseFloat(document.getElementById('mat-precio-' + mid)?.value || 0);
+  const venta  = kg * precio;
+
+  const el = document.getElementById('mat-venta-' + mid);
+  if (el) el.textContent = venta > 0 ? fmtMoney(venta) : '—';
+
+  // Recalcular total general
+  let total = 0;
+  document.querySelectorAll('[id^="mat-venta-"]').forEach(el => {
+    const v = parseFloat(el.textContent.replace(/[$,]/g,'')) || 0;
+    total += v;
+  });
+  const elTotal = document.getElementById('ent-total');
+  if (elTotal) elTotal.textContent = fmtMoney(total);
+}
+
+// ============================================================
+// GUARDAR ENTREGA
+// ============================================================
+
+async function guardarEntrega(id) {
+  const fecha     = document.getElementById('ent-fecha')?.value;
+  const idAsoc    = document.getElementById('ent-asociacion')?.value;
+  const idComp    = document.getElementById('ent-comprador')?.value;
+  const nivel     = document.getElementById('ent-nivel')?.value;
+  const obs       = document.getElementById('ent-obs')?.value;
+  const archivos  = document.getElementById('ent-evidencias')?.files;
+
+  if (!fecha || !idAsoc || !idComp) {
+    showToast('Completa los campos obligatorios');
+    return;
+  }
+
+  // Construir objeto de datos
+  const data = {
+    'ID_Entrega':          id || '',
+    'Fecha':               fecha,
+    'ID_Asociacion':       idAsoc,
+    'ID_Comprador':        idComp,
+    'Nivel Intermediacion': nivel,
+    'Observaciones':       obs,
+    'ID_Usuario':          SESSION.email,
+  };
+
+  // Recoger materiales
+  const materiales = CAT.materiales.length > 0
+    ? CAT.materiales.map(m => m['Nombre'])
+    : ['PET','Plástico Suave','Plástico Duro','Lata Aluminio','Vidrio','Cartón','Chatarra','Cobre','Papel Archivo','Periódico','Soplado','Tetrapak'];
+
+  materiales.forEach(nombre => {
+    const mid    = nombre.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+    const kg     = parseFloat(document.getElementById('mat-kg-' + mid)?.value || 0);
+    const precio = parseFloat(document.getElementById('mat-precio-' + mid)?.value || 0);
+    data[nombre + ' Kilos']  = kg;
+    data[nombre + ' Precio'] = precio;
+  });
+
+  // Deshabilitar botón
+  const btn = document.getElementById('btn-guardar-entrega');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...'; }
+
+  try {
+    const res = await apiPost({ action: 'saveEntrega', data });
+    if (!res.ok) { showToast('Error: ' + (res.error || 'desconocido')); return; }
+
+    // Subir evidencias a Drive si las hay
+    if (archivos && archivos.length > 0 && res.folderId) {
+      showToast('Subiendo evidencias...');
+      for (const archivo of archivos) {
+        await subirDrive(archivo, res.folderId, archivo.name);
+      }
+    }
+
+    showToast(id ? 'Entrega actualizada ✓' : 'Entrega guardada ✓');
+    cerrarModal();
+    await cargarEntregas();
+  } catch(e) {
+    console.error(e);
+    showToast('Error al guardar');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Guardar entrega'; }
+  }
+}
+
+
+// ============================================================
+// accesos.js
+// ============================================================
+// ============================================================
+// RECIRCULA 360 — accesos.js
+// Panel de links y recursos del equipo
+// ============================================================
+
+let ACCESOS_CAT_ACTIVA = 'Todos';
+
+// ============================================================
+// RENDER PRINCIPAL
+// ============================================================
+
+async function renderAccesos() {
+  // Botón agregar (solo admin)
+  if (SESSION.rol === 'Admin') {
+    document.getElementById('topbar-actions').innerHTML = `
+      <button class="btn btn-primary" onclick="abrirFormAcceso()">
+        <i class="ti ti-plus"></i> Nuevo acceso
+      </button>
+    `;
+  }
+
+  const content = document.getElementById('main-content');
+
+  // Obtener categorías únicas
+  const categorias = ['Todos', ...new Set(CAT.accesos.map(a => a['Categoría']).filter(Boolean))];
+
+  content.innerHTML = `
+    <!-- Chips de categoría -->
+    <div class="cat-chips">
+      ${categorias.map(c => `
+        <div class="cat-chip ${c === ACCESOS_CAT_ACTIVA ? 'active' : ''}"
+          onclick="filtrarAccesos('${c}')">
+          ${c}
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Grid de accesos -->
+    <div id="accesos-grid-wrap">
+      ${renderGridAccesos()}
+    </div>
+  `;
+}
+
+// ============================================================
+// FILTRAR POR CATEGORÍA
+// ============================================================
+
+function filtrarAccesos(cat) {
+  ACCESOS_CAT_ACTIVA = cat;
+
+  // Actualizar chips
+  document.querySelectorAll('.cat-chip').forEach(el => {
+    el.classList.toggle('active', el.textContent.trim() === cat);
+  });
+
+  const wrap = document.getElementById('accesos-grid-wrap');
+  if (wrap) wrap.innerHTML = renderGridAccesos();
+}
+
+// ============================================================
+// GRID DE ACCESOS
+// ============================================================
+
+function renderGridAccesos() {
+  const filtrados = ACCESOS_CAT_ACTIVA === 'Todos'
+    ? CAT.accesos
+    : CAT.accesos.filter(a => a['Categoría'] === ACCESOS_CAT_ACTIVA);
+
+  if (!filtrados.length) {
+    return `
+      <div style="text-align:center;padding:60px;color:var(--tl)">
+        <i class="ti ti-link" style="font-size:40px;display:block;margin-bottom:12px"></i>
+        No hay accesos en esta categoría
+      </div>`;
+  }
+
+  const tarjetas = filtrados.map(a => `
+    <a class="acceso-card" href="${a['URL']}" target="_blank" rel="noopener noreferrer">
+      <div class="acceso-emoji">${a['Emoji'] || '🔗'}</div>
+      <div class="acceso-nombre">${a['Nombre']}</div>
+      <div class="acceso-cat">${a['Categoría'] || ''}</div>
+      ${SESSION.rol === 'Admin' ? `
+        <div style="display:flex;gap:6px;margin-top:4px" onclick="event.preventDefault()">
+          <button class="btn btn-glass btn-sm" onclick="abrirFormAcceso('${a['ID']}')">
+            <i class="ti ti-pencil"></i>
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="eliminarAcceso('${a['ID']}','${a['Nombre']}')">
+            <i class="ti ti-trash"></i>
+          </button>
+        </div>` : ''}
+    </a>
+  `).join('');
+
+  return `<div class="accesos-grid">${tarjetas}</div>`;
+}
+
+// ============================================================
+// FORMULARIO NUEVO / EDITAR ACCESO
+// ============================================================
+
+function abrirFormAcceso(id = null) {
+  const a = id ? CAT.accesos.find(x => x['ID'] === id) : null;
+  const titulo = a ? 'Editar acceso' : 'Nuevo acceso';
+
+  const categorias = ['Herramientas','Documentos','Redes sociales','Comunicación','Drive','Reportes','Otros'];
+
+  abrirModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">${titulo}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="acc-nombre" placeholder="Nombre del acceso"
+            value="${a?.['Nombre'] || ''}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">URL *</label>
+          <input type="url" class="form-input" id="acc-url" placeholder="https://..."
+            value="${a?.['URL'] || ''}">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Emoji</label>
+            <input type="text" class="form-input" id="acc-emoji" placeholder="🔗"
+              value="${a?.['Emoji'] || ''}" maxlength="4">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Categoría</label>
+            <select class="form-select" id="acc-categoria">
+              ${categorias.map(c =>
+                `<option value="${c}" ${a?.['Categoría']===c?'selected':''}>${c}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Visible para</label>
+            <select class="form-select" id="acc-visible">
+              <option value="Todos" ${a?.['Visible para']==='Todos'?'selected':''}>Todos</option>
+              <option value="Solo admin" ${a?.['Visible para']==='Solo admin'?'selected':''}>Solo admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Activo</label>
+            <select class="form-select" id="acc-activo">
+              <option value="true" ${a?.['Activo']!==false?'selected':''}>Sí</option>
+              <option value="false" ${a?.['Activo']===false?'selected':''}>No</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-acceso" onclick="guardarAcceso('${id || ''}')">
+          <i class="ti ti-check"></i> ${a ? 'Actualizar' : 'Guardar'}
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+// ============================================================
+// GUARDAR ACCESO
+// ============================================================
+
+async function guardarAcceso(id) {
+  const nombre    = document.getElementById('acc-nombre')?.value?.trim();
+  const url       = document.getElementById('acc-url')?.value?.trim();
+  const emoji     = document.getElementById('acc-emoji')?.value?.trim();
+  const categoria = document.getElementById('acc-categoria')?.value;
+  const visible   = document.getElementById('acc-visible')?.value;
+  const activo    = document.getElementById('acc-activo')?.value === 'true';
+
+  if (!nombre || !url) {
+    showToast('Nombre y URL son obligatorios');
+    return;
+  }
+
+  const btn = document.getElementById('btn-guardar-acceso');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...'; }
+
+  try {
+    const data = {
+      ID:            id || '',
+      Nombre:        nombre,
+      URL:           url,
+      Emoji:         emoji || '🔗',
+      'Categoría':   categoria,
+      'Visible para': visible,
+      Activo:        activo,
+      email:         SESSION.email,
+    };
+
+    const res = await apiPost({ action: 'saveAcceso', data });
+    if (!res.ok) { showToast('Error: ' + (res.error || 'desconocido')); return; }
+
+    showToast(id ? 'Acceso actualizado ✓' : 'Acceso guardado ✓');
+    cerrarModal();
+
+    // Recargar catálogo de accesos
+    const accs = await apiGet({ action: 'getAccesos', rol: SESSION.rol });
+    if (accs.ok) CAT.accesos = accs.data;
+    renderAccesos();
+  } catch(e) {
+    console.error(e);
+    showToast('Error al guardar');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Guardar'; }
+  }
+}
+
+// ============================================================
+// ELIMINAR ACCESO
+// ============================================================
+
+function eliminarAcceso(id, nombre) {
+  abrirModal(`
+    <div class="modal" style="max-width:420px">
+      <div class="modal-head">
+        <div class="modal-title">Eliminar acceso</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--tm);font-size:14px">
+          ¿Seguro que quieres eliminar <strong>${nombre}</strong>?
+          Esta acción no se puede deshacer.
+        </p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="confirmarEliminarAcceso('${id}')">
+          <i class="ti ti-trash"></i> Eliminar
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+async function confirmarEliminarAcceso(id) {
+  try {
+    const res = await apiPost({ action: 'deleteRow', sheet: 'Accesos', id });
+    if (!res.ok) { showToast('Error al eliminar'); return; }
+
+    showToast('Acceso eliminado ✓');
+    cerrarModal();
+
+    const accs = await apiGet({ action: 'getAccesos', rol: SESSION.rol });
+    if (accs.ok) CAT.accesos = accs.data;
+    renderAccesos();
+  } catch(e) {
+    console.error(e);
+    showToast('Error al eliminar');
+  }
+}
+
+
+// ============================================================
+// asociaciones.js
+// ============================================================
+// ============================================================
+// RECIRCULA 360 — asociaciones.js
+// Gestión de asociaciones recicladores
+// ============================================================
+
+let ASOC_DATA   = [];
+let ASOC_BUSCAR = '';
+let ASOC_ESTADO = '';
+
+// ============================================================
+// RENDER PRINCIPAL
+// ============================================================
+
+async function renderAsociaciones() {
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="abrirFormAsociacion()">
+      <i class="ti ti-plus"></i> Nueva asociación
+    </button>
+  `;
+
+  const content = document.getElementById('main-content');
+  content.innerHTML = `
+    <!-- Filtros -->
+    <div class="filters-bar">
+      <span class="filter-label-inline"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
+      <div class="filter-divider"></div>
+      <input type="text" class="filter-select-sm" id="asoc-buscar"
+        placeholder="Buscar asociación..." oninput="buscarAsociacion(this.value)"
+        style="min-width:200px">
+      <select class="filter-select-sm" id="asoc-estado-f" onchange="filtrarEstadoAsoc(this.value)">
+        <option value="">Todos los estados</option>
+        <option value="Activa">Activa</option>
+        <option value="Inactiva">Inactiva</option>
+      </select>
+      <button class="btn-reset-filters" onclick="resetFiltrosAsoc()">
+        <i class="ti ti-x"></i> Limpiar
+      </button>
+    </div>
+
+    <!-- Contenido -->
+    <div id="asoc-content">
+      <div style="display:flex;align-items:center;justify-content:center;padding:60px;gap:16px">
+        <div class="spinner"></div>
+        <span style="color:var(--tm)">Cargando asociaciones...</span>
+      </div>
+    </div>
+  `;
+
+  await cargarAsociaciones();
+}
+
+// ============================================================
+// CARGAR DATOS
+// ============================================================
+
+async function cargarAsociaciones() {
+  try {
+    const res = await apiGet({ action: 'getAsociaciones' });
+    // También traer inactivas para admin
+    const resAll = await apiGet({ action: 'getAllAsociaciones' });
+    ASOC_DATA = resAll.ok ? resAll.data : (res.ok ? res.data : []);
+    if (res.ok) CAT.asociaciones = res.data; // actualizar catálogo activas
+    renderTablaAsociaciones();
+  } catch(e) {
+    console.error(e);
+    showToast('Error cargando asociaciones');
+  }
+}
+
+function buscarAsociacion(val) {
+  ASOC_BUSCAR = val.toLowerCase();
+  renderTablaAsociaciones();
+}
+
+function filtrarEstadoAsoc(val) {
+  ASOC_ESTADO = val;
+  renderTablaAsociaciones();
+}
+
+function resetFiltrosAsoc() {
+  ASOC_BUSCAR = '';
+  ASOC_ESTADO = '';
+  const b = document.getElementById('asoc-buscar');
+  const e = document.getElementById('asoc-estado-f');
+  if (b) b.value = '';
+  if (e) e.value = '';
+  renderTablaAsociaciones();
+}
+
+// ============================================================
+// TABLA
+// ============================================================
+
+function renderTablaAsociaciones() {
+  const wrap = document.getElementById('asoc-content');
+  if (!wrap) return;
+
+  let data = ASOC_DATA;
+  if (ASOC_BUSCAR) data = data.filter(a => (a['Nombre']||'').toLowerCase().includes(ASOC_BUSCAR));
+  if (ASOC_ESTADO) data = data.filter(a => a['Estado'] === ASOC_ESTADO);
+
+  if (!data.length) {
+    wrap.innerHTML = `
+      <div style="text-align:center;padding:60px;color:var(--tl)">
+        <i class="ti ti-building-community" style="font-size:40px;display:block;margin-bottom:12px"></i>
+        No hay asociaciones registradas
+      </div>`;
+    return;
+  }
+
+  const filas = data.map(a => {
+    const tieneCarpeta = a['ID_Carpeta_Drive'];
+    const estadoBadge  = a['Estado'] === 'Activa'
+      ? '<span class="badge badge-green">Activa</span>'
+      : '<span class="badge badge-warn">Inactiva</span>';
+
+    return `
+      <tr>
+        <td style="font-weight:600;color:var(--b1)">${a['Nombre'] || '—'}</td>
+        <td>${a['Provincia'] || '—'}</td>
+        <td>${a['Ciudad'] || '—'}</td>
+        <td style="font-size:12px;color:var(--tm)">${a['Tipo'] || '—'}</td>
+        <td style="text-align:center;font-weight:600">${a['Numero de Recicladores'] || '—'}</td>
+        <td>${estadoBadge}</td>
+        <td>
+          ${tieneCarpeta
+            ? `<a href="https://drive.google.com/drive/folders/${a['ID_Carpeta_Drive']}"
+                target="_blank" class="btn btn-glass btn-sm">
+                <i class="ti ti-folder"></i> Ver Drive
+               </a>`
+            : `<button class="btn btn-glass btn-sm" onclick="crearCarpetaAsociacion('${a['ID_Asociacion']}','${a['Nombre'].replace(/'/g,"\\'")}')">
+                <i class="ti ti-folder-plus"></i> Crear carpeta
+               </button>`
+          }
+        </td>
+        <td>
+          <div class="td-actions">
+            <button class="btn btn-glass btn-sm" onclick="verAsociacion('${a['ID_Asociacion']}')">
+              <i class="ti ti-eye"></i>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="abrirFormAsociacion('${a['ID_Asociacion']}')">
+              <i class="ti ti-pencil"></i>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="card" style="padding:0">
+      <div class="table-wrap" style="border:none;border-radius:var(--radius-lg)">
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Provincia</th>
+              <th>Ciudad</th>
+              <th>Tipo</th>
+              <th style="text-align:center">Recicladores</th>
+              <th>Estado</th>
+              <th>Carpeta Drive</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--tl);text-align:right">
+      ${data.length} asociación${data.length !== 1 ? 'es' : ''}
+    </div>
+  `;
+}
+
+// ============================================================
+// VER DETALLE
+// ============================================================
+
+function verAsociacion(id) {
+  const a = ASOC_DATA.find(x => x['ID_Asociacion'] === id);
+  if (!a) return;
+
+  abrirModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">${a['Nombre']}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div>
+            <div class="form-label">Provincia</div>
+            <div style="font-size:14px;margin-top:4px">${a['Provincia'] || '—'}</div>
+          </div>
+          <div>
+            <div class="form-label">Ciudad</div>
+            <div style="font-size:14px;margin-top:4px">${a['Ciudad'] || '—'}</div>
+          </div>
+          <div>
+            <div class="form-label">Tipo</div>
+            <div style="font-size:14px;margin-top:4px">${a['Tipo'] || '—'}</div>
+          </div>
+          <div>
+            <div class="form-label">Estado</div>
+            <div style="margin-top:4px">
+              ${a['Estado'] === 'Activa'
+                ? '<span class="badge badge-green">Activa</span>'
+                : '<span class="badge badge-warn">Inactiva</span>'}
+            </div>
+          </div>
+          <div>
+            <div class="form-label">Número de recicladores</div>
+            <div style="font-size:20px;font-weight:700;color:var(--b1);margin-top:4px">
+              ${a['Numero de Recicladores'] || '—'}
+            </div>
+          </div>
+          <div>
+            <div class="form-label">Fecha ingreso</div>
+            <div style="font-size:14px;margin-top:4px">${fmtFecha(a['Fecha Ingreso']) || '—'}</div>
+          </div>
+        </div>
+
+        ${a['Observaciones'] ? `
+          <div style="margin-top:16px">
+            <div class="form-label">Observaciones</div>
+            <div style="font-size:13px;color:var(--tm);margin-top:4px">${a['Observaciones']}</div>
+          </div>` : ''}
+
+        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+          ${a['ID_Carpeta_Drive']
+            ? `<a href="https://drive.google.com/drive/folders/${a['ID_Carpeta_Drive']}"
+                target="_blank" class="btn btn-glass">
+                <i class="ti ti-folder"></i> Ver carpeta Drive
+               </a>`
+            : `<button class="btn btn-glass" onclick="cerrarModal();crearCarpetaAsociacion('${a['ID_Asociacion']}','${a['Nombre'].replace(/'/g,"\\'")}')">
+                <i class="ti ti-folder-plus"></i> Crear carpeta Drive
+               </button>`}
+          <button class="btn btn-primary" onclick="cerrarModal();abrirFormAsociacion('${a['ID_Asociacion']}')">
+            <i class="ti ti-pencil"></i> Editar
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+// ============================================================
+// FORMULARIO NUEVA / EDITAR
+// ============================================================
+
+function abrirFormAsociacion(id = null) {
+  const a = id ? ASOC_DATA.find(x => x['ID_Asociacion'] === id) : null;
+
+  abrirModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">${a ? 'Editar asociación' : 'Nueva asociación'}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="aso-nombre"
+            placeholder="Nombre de la asociación" value="${a?.['Nombre'] || ''}">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Provincia</label>
+            <select class="form-select" id="aso-provincia">
+              ${['El Oro','Guayas','Manabí','Sucumbíos','Pichincha','Chimborazo','Otra'].map(p =>
+                `<option value="${p}" ${a?.['Provincia']===p?'selected':''}>${p}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ciudad</label>
+            <input type="text" class="form-input" id="aso-ciudad"
+              placeholder="Ciudad" value="${a?.['Ciudad'] || ''}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <select class="form-select" id="aso-tipo">
+              ${['Formal','Colectivo','Grupo'].map(t =>
+                `<option value="${t}" ${a?.['Tipo']===t?'selected':''}>${t}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado</label>
+            <select class="form-select" id="aso-estado">
+              <option value="Activa"   ${(!a || a?.['Estado']==='Activa')  ?'selected':''}>Activa</option>
+              <option value="Inactiva" ${a?.['Estado']==='Inactiva'?'selected':''}>Inactiva</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Número de recicladores</label>
+          <input type="number" class="form-input" id="aso-recicladores" min="0"
+            placeholder="0" value="${a?.['Numero de Recicladores'] || ''}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Observaciones</label>
+          <textarea class="form-textarea" id="aso-obs"
+            placeholder="Notas adicionales...">${a?.['Observaciones'] || ''}</textarea>
+        </div>
+
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-aso" onclick="guardarAsociacion('${id || ''}')">
+          <i class="ti ti-check"></i> ${a ? 'Actualizar' : 'Guardar'}
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+// ============================================================
+// GUARDAR
+// ============================================================
+
+async function guardarAsociacion(id) {
+  const nombre       = document.getElementById('aso-nombre')?.value?.trim();
+  const provincia    = document.getElementById('aso-provincia')?.value;
+  const ciudad       = document.getElementById('aso-ciudad')?.value?.trim();
+  const tipo         = document.getElementById('aso-tipo')?.value;
+  const estado       = document.getElementById('aso-estado')?.value;
+  const recicladores = document.getElementById('aso-recicladores')?.value;
+  const obs          = document.getElementById('aso-obs')?.value;
+
+  if (!nombre) { showToast('El nombre es obligatorio'); return; }
+
+  const btn = document.getElementById('btn-guardar-aso');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...'; }
+
+  try {
+    const data = {
+      ID_Asociacion: id || '',
+      Nombre: nombre,
+      Provincia: provincia,
+      Ciudad: ciudad,
+      Tipo: tipo,
+      Estado: estado,
+      'Numero de Recicladores': recicladores,
+      Observaciones: obs,
+      'Fecha Ingreso': id ? '' : new Date().toISOString().substring(0, 10),
+    };
+
+    const res = await apiPost({ action: 'saveAsociacion', data });
+    if (!res.ok) { showToast('Error: ' + (res.error || 'desconocido')); return; }
+
+    // Si es nueva, crear carpeta en Drive automáticamente
+    if (!id && res.id) {
+      showToast('Creando carpeta en Drive...');
+      await apiPost({ action: 'crearCarpetaAsoc', idAsociacion: res.id, nombre });
+    }
+
+    showToast(id ? 'Asociación actualizada ✓' : 'Asociación creada ✓');
+    cerrarModal();
+    await cargarAsociaciones();
+  } catch(e) {
+    console.error(e);
+    showToast('Error al guardar');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Guardar'; }
+  }
+}
+
+// ============================================================
+// CREAR CARPETA DRIVE
+// ============================================================
+
+async function crearCarpetaAsociacion(idAsociacion, nombre) {
+  showToast('Creando carpeta en Drive...');
+  try {
+    const res = await apiPost({ action: 'crearCarpetaAsoc', idAsociacion, nombre });
+    if (res.ok) {
+      showToast('Carpeta creada ✓');
+      await cargarAsociaciones();
+    } else {
+      showToast('Error al crear carpeta');
+    }
+  } catch(e) {
+    showToast('Error de conexión');
+  }
+}
+
+
+// ============================================================
+// configuracion.js
+// ============================================================
+// ============================================================
+// RECIRCULA 360 — configuracion.js
+// Solo admin: Usuarios, Materiales, Compradores, Ajustes
+// ============================================================
+
+let CONFIG_TAB    = 'usuarios';
+let USUARIOS_DATA = [];
+
+function renderConfiguracion() {
+  if (SESSION.rol !== 'Admin') {
+    document.getElementById('main-content').innerHTML = `
+      <div class="card" style="text-align:center;padding:60px">
+        <i class="ti ti-lock" style="font-size:40px;color:var(--tl);display:block;margin-bottom:12px"></i>
+        <div style="font-size:15px;font-weight:600;color:var(--tm)">Acceso restringido</div>
+        <div style="font-size:13px;color:var(--tl);margin-top:6px">Solo los administradores pueden acceder</div>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="tabs-bar">
+      <button class="tab-btn active" id="cfg-tab-usuarios" onclick="switchConfigTab('usuarios')">
+        <i class="ti ti-users"></i> Usuarios
+      </button>
+      <button class="tab-btn" id="cfg-tab-materiales" onclick="switchConfigTab('materiales')">
+        <i class="ti ti-recycle"></i> Materiales
+      </button>
+      <button class="tab-btn" id="cfg-tab-compradores" onclick="switchConfigTab('compradores')">
+        <i class="ti ti-truck"></i> Compradores
+      </button>
+      <button class="tab-btn" id="cfg-tab-ajustes" onclick="switchConfigTab('ajustes')">
+        <i class="ti ti-settings-2"></i> Ajustes
+      </button>
+    </div>
+    <div id="config-tab-content"></div>
+  `;
+  switchConfigTab('usuarios');
+}
+
+function switchConfigTab(tab) {
+  CONFIG_TAB = tab;
+  document.querySelectorAll('[id^="cfg-tab-"]').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('cfg-tab-' + tab);
+  if (el) el.classList.add('active');
+  switch (tab) {
+    case 'usuarios':    renderUsuarios();    break;
+    case 'materiales':  renderMateriales();  break;
+    case 'compradores': renderCompradores(); break;
+    case 'ajustes':     renderAjustes();     break;
+  }
+}
+
+// ── USUARIOS ─────────────────────────────────────────────────
+async function renderUsuarios() {
+  document.getElementById('config-tab-content').innerHTML = `
+    <div class="config-section">
+      <div class="config-section-head">
+        <div class="config-section-title"><i class="ti ti-users"></i> Usuarios</div>
+        <button class="btn btn-primary btn-sm" onclick="abrirFormUsuario()"><i class="ti ti-plus"></i> Nuevo</button>
+      </div>
+      <div style="padding:30px;text-align:center"><div class="spinner" style="margin:0 auto"></div></div>
+    </div>`;
+  try {
+    const res = await apiGet({ action: 'getUsuariosTodos' });
+    USUARIOS_DATA = res.ok ? res.data : [];
+    renderTablaUsuarios();
+  } catch(e) { showToast('Error cargando usuarios'); }
+}
+
+function renderTablaUsuarios() {
+  document.getElementById('config-tab-content').innerHTML = `
+    <div class="config-section">
+      <div class="config-section-head">
+        <div class="config-section-title">
+          <i class="ti ti-users"></i> Usuarios
+          <span class="badge badge-blue">${USUARIOS_DATA.length}</span>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="abrirFormUsuario()"><i class="ti ti-plus"></i> Nuevo</button>
+      </div>
+      <div class="config-section-body" style="padding:0">
+        <div class="table-wrap" style="border:none;border-radius:0"><table>
+          <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Activo</th><th></th></tr></thead>
+          <tbody>${USUARIOS_DATA.length ? USUARIOS_DATA.map(u => `
+            <tr>
+              <td style="font-weight:500">${u['Nombre']}</td>
+              <td style="font-size:12px;color:var(--tm)">${u['Email']}</td>
+              <td><span class="badge ${u['Rol']==='Admin'?'badge-blue':u['Rol']==='Editor'?'badge-green':'badge-cyan'}">${u['Rol']}</span></td>
+              <td><span class="badge ${u['Activo']===true||u['Activo']==='TRUE'?'badge-green':'badge-warn'}">${u['Activo']===true||u['Activo']==='TRUE'?'Activo':'Inactivo'}</span></td>
+              <td><div class="td-actions"><button class="btn btn-primary btn-sm" onclick="abrirFormUsuario('${u['ID_Usuario']}')"><i class="ti ti-pencil"></i></button></div></td>
+            </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--tl);padding:30px">No hay usuarios</td></tr>'}
+          </tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+
+function abrirFormUsuario(id = null) {
+  const u = id ? USUARIOS_DATA.find(x => x['ID_Usuario'] === id) : null;
+  abrirModal(`
+    <div class="modal" style="max-width:440px">
+      <div class="modal-head">
+        <div class="modal-title">${u ? 'Editar usuario' : 'Nuevo usuario'}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="usr-nombre" value="${u?.['Nombre']||''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input type="email" class="form-input" id="usr-email" value="${u?.['Email']||''}"
+            placeholder="nombre@redesconrostro.org" ${u?'readonly style="background:#f8fbfd;color:var(--tm)"':''}>
+          <div class="form-hint">Solo cuentas @redesconrostro.org</div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Rol</label>
+            <select class="form-select" id="usr-rol">
+              <option value="Admin"        ${u?.['Rol']==='Admin'?'selected':''}>Admin</option>
+              <option value="Editor"       ${u?.['Rol']==='Editor'?'selected':''}>Editor</option>
+              <option value="Visualizador" ${u?.['Rol']==='Visualizador'?'selected':''}>Visualizador</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Activo</label>
+            <select class="form-select" id="usr-activo">
+              <option value="true"  ${u?.['Activo']!==false?'selected':''}>Sí</option>
+              <option value="false" ${u?.['Activo']===false?'selected':''}>No</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-usr" onclick="guardarUsuario('${id||''}')">
+          <i class="ti ti-check"></i> ${u?'Actualizar':'Guardar'}
+        </button>
+      </div>
+    </div>`);
+}
+
+async function guardarUsuario(id) {
+  const nombre = document.getElementById('usr-nombre')?.value?.trim();
+  const email  = document.getElementById('usr-email')?.value?.trim();
+  const rol    = document.getElementById('usr-rol')?.value;
+  const activo = document.getElementById('usr-activo')?.value === 'true';
+  if (!nombre || !email) { showToast('Nombre y email son obligatorios'); return; }
+  if (!email.endsWith('@' + DOMAIN)) { showToast('Solo cuentas @' + DOMAIN); return; }
+  const btn = document.getElementById('btn-guardar-usr');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...'; }
+  try {
+    const res = await apiPost({ action: 'saveUsuario', data: { ID_Usuario:id||'', Nombre:nombre, Email:email, Rol:rol, Activo:activo }});
+    if (!res.ok) { showToast('Error: '+(res.error||'desconocido')); return; }
+    showToast(id?'Usuario actualizado ✓':'Usuario creado ✓');
+    cerrarModal();
+    await renderUsuarios();
+  } catch(e) { showToast('Error al guardar'); }
+  finally { if (btn) { btn.disabled=false; btn.innerHTML='<i class="ti ti-check"></i> Guardar'; } }
+}
+
+// ── MATERIALES ────────────────────────────────────────────────
+function renderMateriales() {
+  document.getElementById('config-tab-content').innerHTML = `
+    <div class="config-section">
+      <div class="config-section-head">
+        <div class="config-section-title"><i class="ti ti-recycle"></i> Materiales <span class="badge badge-blue">${CAT.materiales.length}</span></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirFormMaterial()"><i class="ti ti-plus"></i> Nuevo</button>
+      </div>
+      <div class="config-section-body" style="padding:0">
+        <div class="table-wrap" style="border:none;border-radius:0"><table>
+          <thead><tr><th>Nombre</th><th>Priorizable</th><th>Activo</th><th></th></tr></thead>
+          <tbody>${CAT.materiales.length ? CAT.materiales.map(m => `
+            <tr>
+              <td style="font-weight:500">${m['Nombre']}</td>
+              <td>${m['Priorizable']==='Sí'||m['Priorizable']===true?'<span class="badge badge-cyan">Sí</span>':'<span style="color:var(--tl);font-size:12px">No</span>'}</td>
+              <td><span class="badge ${m['Activo']===true||m['Activo']==='TRUE'?'badge-green':'badge-warn'}">${m['Activo']===true||m['Activo']==='TRUE'?'Activo':'Inactivo'}</span></td>
+              <td><div class="td-actions"><button class="btn btn-primary btn-sm" onclick="abrirFormMaterial('${m['ID_Material']}')"><i class="ti ti-pencil"></i></button></div></td>
+            </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--tl);padding:30px">No hay materiales</td></tr>'}
+          </tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+
+function abrirFormMaterial(id = null) {
+  const m = id ? CAT.materiales.find(x => x['ID_Material'] === id) : null;
+  abrirModal(`
+    <div class="modal" style="max-width:400px">
+      <div class="modal-head">
+        <div class="modal-title">${m?'Editar material':'Nuevo material'}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="mat-nombre" value="${m?.['Nombre']||''}"></div>
+        <div class="form-grid-2">
+          <div class="form-group"><label class="form-label">Priorizable</label>
+            <select class="form-select" id="mat-prio">
+              <option value="Sí" ${m?.['Priorizable']==='Sí'?'selected':''}>Sí</option>
+              <option value="No" ${m?.['Priorizable']!=='Sí'?'selected':''}>No</option>
+            </select></div>
+          <div class="form-group"><label class="form-label">Activo</label>
+            <select class="form-select" id="mat-activo">
+              <option value="true" ${m?.['Activo']!==false?'selected':''}>Sí</option>
+              <option value="false" ${m?.['Activo']===false?'selected':''}>No</option>
+            </select></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-mat" onclick="guardarMaterial('${id||''}')">
+          <i class="ti ti-check"></i> ${m?'Actualizar':'Guardar'}
+        </button>
+      </div>
+    </div>`);
+}
+
+async function guardarMaterial(id) {
+  const nombre = document.getElementById('mat-nombre')?.value?.trim();
+  const prio   = document.getElementById('mat-prio')?.value;
+  const activo = document.getElementById('mat-activo')?.value === 'true';
+  if (!nombre) { showToast('El nombre es obligatorio'); return; }
+  const btn = document.getElementById('btn-guardar-mat');
+  if (btn) { btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Guardando...'; }
+  try {
+    const res = await apiPost({ action:'saveMaterial', data:{ ID_Material:id||'', Nombre:nombre, Priorizable:prio, Activo:activo }});
+    if (!res.ok) { showToast('Error: '+(res.error||'desconocido')); return; }
+    showToast(id?'Material actualizado ✓':'Material creado ✓');
+    cerrarModal();
+    const mats = await apiGet({ action:'getMateriales' });
+    if (mats.ok) CAT.materiales = mats.data;
+    renderMateriales();
+  } catch(e) { showToast('Error al guardar'); }
+  finally { if (btn) { btn.disabled=false; btn.innerHTML='<i class="ti ti-check"></i> Guardar'; } }
+}
+
+// ── COMPRADORES ───────────────────────────────────────────────
+function renderCompradores() {
+  document.getElementById('config-tab-content').innerHTML = `
+    <div class="config-section">
+      <div class="config-section-head">
+        <div class="config-section-title"><i class="ti ti-truck"></i> Compradores <span class="badge badge-blue">${CAT.compradores.length}</span></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirFormComprador()"><i class="ti ti-plus"></i> Nuevo</button>
+      </div>
+      <div class="config-section-body" style="padding:0">
+        <div class="table-wrap" style="border:none;border-radius:0"><table>
+          <thead><tr><th>Nombre</th><th>Nivel</th><th>Destino final</th><th>Provincia</th><th>Activo</th><th></th></tr></thead>
+          <tbody>${CAT.compradores.length ? CAT.compradores.map(c => `
+            <tr>
+              <td style="font-weight:500">${c['Nombre']}</td>
+              <td>${nivelBadge(c['Nivel Intermediacion'])}</td>
+              <td style="font-size:12px;color:var(--tm)">${c['Destino Final']||'—'}</td>
+              <td>${c['Provincia']||'—'}</td>
+              <td><span class="badge ${c['Activo']===true||c['Activo']==='TRUE'?'badge-green':'badge-warn'}">${c['Activo']===true||c['Activo']==='TRUE'?'Sí':'No'}</span></td>
+              <td><div class="td-actions"><button class="btn btn-primary btn-sm" onclick="abrirFormComprador('${c['ID_Comprador']}')"><i class="ti ti-pencil"></i></button></div></td>
+            </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--tl);padding:30px">No hay compradores</td></tr>'}
+          </tbody>
+        </table></div>
+      </div>
+    </div>`;
+}
+
+function abrirFormComprador(id = null) {
+  const c = id ? CAT.compradores.find(x => x['ID_Comprador'] === id) : null;
+  abrirModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">${c?'Editar comprador':'Nuevo comprador'}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="com-nombre" value="${c?.['Nombre']||''}"></div>
+        <div class="form-grid-2">
+          <div class="form-group"><label class="form-label">Nivel intermediación</label>
+            <select class="form-select" id="com-nivel">
+              ${['Nivel 1','Nivel 2','Nivel 3','Transformador'].map(n =>
+                `<option value="${n}" ${c?.['Nivel Intermediacion']===n?'selected':''}>${n}</option>`).join('')}
+            </select></div>
+          <div class="form-group"><label class="form-label">Provincia</label>
+            <input type="text" class="form-input" id="com-provincia" value="${c?.['Provincia']||''}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Destino final</label>
+          <input type="text" class="form-input" id="com-destino"
+            placeholder="Ej: Se vende a INTERCIA S.A." value="${c?.['Destino Final']||''}"></div>
+        <div class="form-group"><label class="form-label">Activo</label>
+          <select class="form-select" id="com-activo">
+            <option value="true"  ${c?.['Activo']!==false?'selected':''}>Sí</option>
+            <option value="false" ${c?.['Activo']===false?'selected':''}>No</option>
+          </select></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-com" onclick="guardarComprador('${id||''}')">
+          <i class="ti ti-check"></i> ${c?'Actualizar':'Guardar'}
+        </button>
+      </div>
+    </div>`);
+}
+
+async function guardarComprador(id) {
+  const nombre    = document.getElementById('com-nombre')?.value?.trim();
+  const nivel     = document.getElementById('com-nivel')?.value;
+  const provincia = document.getElementById('com-provincia')?.value?.trim();
+  const destino   = document.getElementById('com-destino')?.value?.trim();
+  const activo    = document.getElementById('com-activo')?.value === 'true';
+  if (!nombre) { showToast('El nombre es obligatorio'); return; }
+  const btn = document.getElementById('btn-guardar-com');
+  if (btn) { btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Guardando...'; }
+  try {
+    const res = await apiPost({ action:'saveComprador', data:{
+      ID_Comprador:id||'', Nombre:nombre, 'Nivel Intermediacion':nivel,
+      Provincia:provincia, 'Destino Final':destino, Activo:activo }});
+    if (!res.ok) { showToast('Error: '+(res.error||'desconocido')); return; }
+    showToast(id?'Comprador actualizado ✓':'Comprador creado ✓');
+    cerrarModal();
+    const coms = await apiGet({ action:'getCompradores' });
+    if (coms.ok) CAT.compradores = coms.data;
+    renderCompradores();
+  } catch(e) { showToast('Error al guardar'); }
+  finally { if (btn) { btn.disabled=false; btn.innerHTML='<i class="ti ti-check"></i> Guardar'; } }
+}
+
+// ── AJUSTES ───────────────────────────────────────────────────
+function renderAjustes() {
+  document.getElementById('config-tab-content').innerHTML = `
+    <div class="config-section">
+      <div class="config-section-head">
+        <div class="config-section-title"><i class="ti ti-settings-2"></i> Ajustes generales</div>
+      </div>
+      <div class="config-section-body">
+        <div class="form-group">
+          <label class="form-label">ID Carpeta raíz Drive</label>
+          <input type="text" class="form-input" value="${DRIVE_FOLDER_ROOT}" readonly
+            style="background:#f8fbfd;color:var(--tm);font-size:12px;font-family:monospace">
+          <div class="form-hint">Carpeta raíz donde se organizan las evidencias por asociación.</div>
+        </div>
+        <div style="margin-top:8px">
+          <a href="https://drive.google.com/drive/folders/${DRIVE_FOLDER_ROOT}"
+            target="_blank" class="btn btn-glass btn-sm">
+            <i class="ti ti-folder"></i> Abrir en Drive
+          </a>
+        </div>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+          <div class="form-label" style="margin-bottom:6px">Apps Script URL</div>
+          <div style="font-size:11px;font-family:monospace;color:var(--tm);word-break:break-all;
+            background:#f8fbfd;padding:10px;border-radius:var(--radius-sm);border:1px solid var(--border)">
+            ${SCRIPT_URL}
+          </div>
+        </div>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+          <div style="font-size:13px;font-weight:600;color:var(--tm)">ReCircula 360 · v1.0 · 2026</div>
+          <div style="font-size:12px;color:var(--tl);margin-top:2px">Redes Con Rostro</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+</script>
 
 </body>
 </html>
