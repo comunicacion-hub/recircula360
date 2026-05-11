@@ -2342,6 +2342,20 @@ function abrirFormEntrega(id = null) {
             </select>
           </div>
         </div>
+<div class="form-group">
+  <label class="form-label">Actividad Fuente</label>
+  <select class="form-select" id="ent-actividad">
+    <option value="">Selecciona...</option>
+    ${['Recuperación a pie de Vereda / Fuente','Recuperación en Relleno','Recuperación GIRA'].map(a =>
+      `<option value="${a}" ${e?.['Actividad Fuente']===a?'selected':''}>${a}</option>`
+    ).join('')}
+  </select>
+</div>
+<div class="form-group">
+  <label class="form-label">Destino Final</label>
+  <input type="text" class="form-input" id="ent-destino"
+    placeholder="Ej: Se transforma en INTERCIA S.A." value="${e?.['Destino Final']||''}">
+</div>
 
         <!-- Materiales priorizables -->
         <div class="materiales-section" style="margin-bottom:14px">
