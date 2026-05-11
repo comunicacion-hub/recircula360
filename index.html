@@ -1176,6 +1176,7 @@ function recuperarSesion() {
 
 function cerrarSesion() {
   sessionStorage.clear();
+  cacheClearAll();
   SESSION      = null;
   ACCESS_TOKEN = null;
   CAT          = { asociaciones: [], compradores: [], materiales: [], accesos: [] };
@@ -1213,7 +1214,64 @@ async function iniciarApp() {
   navTo('dashboard');
 }
 
+// ============================================================
+// CACHÉ LOCAL CON TTL
+// ============================================================
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutos
+
+function cacheSet(key, data) {
+  try {
+    localStorage.setItem('rcr_' + key, JSON.stringify({ data, ts: Date.now() }));
+  } catch(e) {}
+}
+
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem('rcr_' + key);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) { localStorage.removeItem('rcr_' + key); return null; }
+    return data;
+  } catch(e) { return null; }
+}
+
+function cacheClear(key) {
+  try { localStorage.removeItem('rcr_' + key); } catch(e) {}
+}
+
+function cacheClearAll() {
+  ['cat_asociaciones','cat_compradores','cat_materiales','cat_accesos'].forEach(k => cacheClear(k));
+}
+
 async function cargarCatalogos() {
+  try {
+    // Leer desde caché primero
+    const cachedAsos = cacheGet('cat_asociaciones');
+    const cachedComs = cacheGet('cat_compradores');
+    const cachedMats = cacheGet('cat_materiales');
+    const cachedAccs = cacheGet('cat_accesos');
+
+    // Cargar desde caché si están disponibles
+    if (cachedAsos) CAT.asociaciones = cachedAsos;
+    if (cachedComs) CAT.compradores  = cachedComs;
+    if (cachedMats) CAT.materiales   = cachedMats;
+    if (cachedAccs) CAT.accesos      = cachedAccs;
+
+    // Si todo está en caché, mostrar app inmediatamente
+    if (cachedAsos && cachedComs && cachedMats && cachedAccs) {
+      // Actualizar en segundo plano sin bloquear la UI
+      setTimeout(() => actualizarCatalogosBackground(), 100);
+      return;
+    }
+
+    // Si no hay caché, cargar todo en paralelo
+    await actualizarCatalogos();
+  } catch(e) {
+    console.error('Error cargando catálogos:', e);
+  }
+}
+
+async function actualizarCatalogos() {
   try {
     const [asos, coms, mats, accs] = await Promise.all([
       apiGet({ action: 'getAsociaciones' }),
@@ -1221,13 +1279,22 @@ async function cargarCatalogos() {
       apiGet({ action: 'getMateriales' }),
       apiGet({ action: 'getAccesos', rol: SESSION.rol }),
     ]);
-    if (asos.ok) CAT.asociaciones = asos.data;
-    if (coms.ok) CAT.compradores  = coms.data;
-    if (mats.ok) CAT.materiales   = mats.data;
-    if (accs.ok) CAT.accesos      = accs.data;
+    if (asos.ok) { CAT.asociaciones = asos.data; cacheSet('cat_asociaciones', asos.data); }
+    if (coms.ok) { CAT.compradores  = coms.data; cacheSet('cat_compradores',  coms.data); }
+    if (mats.ok) { CAT.materiales   = mats.data; cacheSet('cat_materiales',   mats.data); }
+    if (accs.ok) { CAT.accesos      = accs.data; cacheSet('cat_accesos',      accs.data); }
   } catch(e) {
-    console.error('Error cargando catálogos:', e);
+    console.error('Error actualizando catálogos:', e);
   }
+}
+
+async function actualizarCatalogosBackground() {
+  await actualizarCatalogos();
+}
+
+// Invalidar caché después de guardar datos
+function invalidarCache(tipo) {
+  cacheClear('cat_' + tipo);
 }
 
 // ============================================================
