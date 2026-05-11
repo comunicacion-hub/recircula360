@@ -1972,6 +1972,12 @@ let ENTREGAS_FILTROS = { anio: '', mes: '', asociacion: '' };
 async function renderEntregas() {
   // Botón nueva entrega en topbar
   document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-glass" onclick="verCompradoresModal()">
+      <i class="ti ti-eye"></i> Ver compradores
+    </button>
+    <button class="btn btn-success" onclick="abrirFormComprador()">
+      <i class="ti ti-plus"></i> Nuevo comprador
+    </button>
     <button class="btn btn-primary" onclick="abrirFormEntrega()">
       <i class="ti ti-plus"></i> Nueva entrega
     </button>
@@ -2480,6 +2486,128 @@ async function guardarEntrega(id) {
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Guardar entrega'; }
   }
+}
+
+// ============================================================
+// COMPRADORES — desde módulo Entregas
+// ============================================================
+
+function verCompradoresModal() {
+  const filas = CAT.compradores.length ? CAT.compradores.map(c => `
+    <tr>
+      <td style="font-weight:500">${c['Nombre']}</td>
+      <td>${nivelBadge(c['Nivel Intermediacion'])}</td>
+      <td style="font-size:12px;color:var(--tm)">${c['Destino Final']||'—'}</td>
+      <td>${c['Provincia']||'—'}</td>
+      <td><span class="badge ${c['Activo']===true||c['Activo']==='TRUE'?'badge-green':'badge-warn'}">${c['Activo']===true||c['Activo']==='TRUE'?'Sí':'No'}</span></td>
+      <td>
+        <div class="td-actions">
+          <button class="btn btn-primary btn-sm" onclick="abrirFormComprador('${c['ID_Comprador']}')">
+            <i class="ti ti-pencil"></i>
+          </button>
+        </div>
+      </td>
+    </tr>`).join('') 
+    : '<tr><td colspan="6" style="text-align:center;color:var(--tl);padding:30px">No hay compradores registrados</td></tr>';
+
+  abrirModal(`
+    <div class="modal" style="max-width:700px">
+      <div class="modal-head">
+        <div class="modal-title">Compradores</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <div class="table-wrap" style="border:none;border-radius:0">
+          <table>
+            <thead>
+              <tr><th>Nombre</th><th>Nivel</th><th>Destino final</th><th>Provincia</th><th>Activo</th><th></th></tr>
+            </thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-success" onclick="cerrarModal();abrirFormComprador()">
+          <i class="ti ti-plus"></i> Nuevo comprador
+        </button>
+        <button class="btn btn-glass" onclick="cerrarModal()">Cerrar</button>
+      </div>
+    </div>
+  `);
+}
+
+function abrirFormComprador(id = null) {
+  const c = id ? CAT.compradores.find(x => x['ID_Comprador'] === id) : null;
+  abrirModal(`
+    <div class="modal">
+      <div class="modal-head">
+        <div class="modal-title">${c ? 'Editar comprador' : 'Nuevo comprador'}</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input type="text" class="form-input" id="com-nombre" value="${c?.['Nombre']||''}">
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Nivel intermediación</label>
+            <select class="form-select" id="com-nivel">
+              ${['Nivel 1','Nivel 2','Nivel 3','Transformador'].map(n =>
+                `<option value="${n}" ${c?.['Nivel Intermediacion']===n?'selected':''}>${n}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Provincia</label>
+            <input type="text" class="form-input" id="com-provincia" value="${c?.['Provincia']||''}">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino final</label>
+          <input type="text" class="form-input" id="com-destino"
+            placeholder="Ej: Se vende a INTERCIA S.A." value="${c?.['Destino Final']||''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Activo</label>
+          <select class="form-select" id="com-activo">
+            <option value="true"  ${c?.['Activo']!==false?'selected':''}>Sí</option>
+            <option value="false" ${c?.['Activo']===false?'selected':''}>No</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" id="btn-guardar-com" onclick="guardarCompradorEntregas('${id||''}')">
+          <i class="ti ti-check"></i> ${c ? 'Actualizar' : 'Guardar'}
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+async function guardarCompradorEntregas(id) {
+  const nombre    = document.getElementById('com-nombre')?.value?.trim();
+  const nivel     = document.getElementById('com-nivel')?.value;
+  const provincia = document.getElementById('com-provincia')?.value?.trim();
+  const destino   = document.getElementById('com-destino')?.value?.trim();
+  const activo    = document.getElementById('com-activo')?.value === 'true';
+  if (!nombre) { showToast('El nombre es obligatorio'); return; }
+  const btn = document.getElementById('btn-guardar-com');
+  if (btn) { btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Guardando...'; }
+  try {
+    const res = await apiPost({ action:'saveComprador', data:{
+      ID_Comprador:id||'', Nombre:nombre,
+      'Nivel Intermediacion':nivel,
+      Provincia:provincia, 'Destino Final':destino, Activo:activo
+    }});
+    if (!res.ok) { showToast('Error: '+(res.error||'desconocido')); return; }
+    showToast(id?'Comprador actualizado ✓':'Comprador creado ✓');
+    invalidarCache('compradores');
+    const coms = await apiGet({ action:'getCompradores' });
+    if (coms.ok) CAT.compradores = coms.data;
+    cerrarModal();
+  } catch(e) { showToast('Error al guardar'); }
+  finally { if (btn) { btn.disabled=false; btn.innerHTML='<i class="ti ti-check"></i> Guardar'; } }
 }
 
 
@@ -3184,9 +3312,6 @@ function renderConfiguracion() {
       <button class="tab-btn" id="cfg-tab-materiales" onclick="switchConfigTab('materiales')">
         <i class="ti ti-recycle"></i> Materiales
       </button>
-      <button class="tab-btn" id="cfg-tab-compradores" onclick="switchConfigTab('compradores')">
-        <i class="ti ti-truck"></i> Compradores
-      </button>
       <button class="tab-btn" id="cfg-tab-ajustes" onclick="switchConfigTab('ajustes')">
         <i class="ti ti-settings-2"></i> Ajustes
       </button>
@@ -3204,7 +3329,6 @@ function switchConfigTab(tab) {
   switch (tab) {
     case 'usuarios':    renderUsuarios();    break;
     case 'materiales':  renderMateriales();  break;
-    case 'compradores': renderCompradores(); break;
     case 'ajustes':     renderAjustes();     break;
   }
 }
