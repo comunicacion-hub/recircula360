@@ -1085,6 +1085,8 @@ const SCRIPT_URL   = 'https://script.google.com/macros/s/AKfycbzoOqPPbbOGh894CiD
 const G_CLIENT_ID  = '783730193199-d7nhahv3ou4rmps7nrpoop5cpor079ej.apps.googleusercontent.com';
 const DOMAIN       = 'redesconrostro.org';
 const DRIVE_FOLDER_ROOT = '1AQyBa9AAdVzukBaZxWa7jpSN2DYkoFhv';
+const SHEET_ID = '1WwvL0kna3SiFrByvlV4kJjJ1An7Dz4OYMDb6SCz8VD0';
+const SHEETS_API = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 // ── Estado global ────────────────────────────────────────────
 let SESSION      = null;
@@ -1240,31 +1242,24 @@ function cacheClear(key) {
 }
 
 function cacheClearAll() {
-  ['cat_asociaciones','cat_compradores','cat_materiales','cat_accesos'].forEach(k => cacheClear(k));
+  cacheClear('cat_todos');
 }
 
 async function cargarCatalogos() {
   try {
     // Leer desde caché primero
-    const cachedAsos = cacheGet('cat_asociaciones');
-    const cachedComs = cacheGet('cat_compradores');
-    const cachedMats = cacheGet('cat_materiales');
-    const cachedAccs = cacheGet('cat_accesos');
-
-    // Cargar desde caché si están disponibles
-    if (cachedAsos) CAT.asociaciones = cachedAsos;
-    if (cachedComs) CAT.compradores  = cachedComs;
-    if (cachedMats) CAT.materiales   = cachedMats;
-    if (cachedAccs) CAT.accesos      = cachedAccs;
-
-    // Si todo está en caché, mostrar app inmediatamente
-    if (cachedAsos && cachedComs && cachedMats && cachedAccs) {
-      // Actualizar en segundo plano sin bloquear la UI
-      setTimeout(() => actualizarCatalogosBackground(), 100);
+    const cached = cacheGet('cat_todos');
+    if (cached) {
+      CAT.asociaciones      = cached.asociaciones      || [];
+      CAT.todasAsociaciones = cached.todasAsociaciones || [];
+      CAT.compradores       = cached.compradores       || [];
+      CAT.materiales        = cached.materiales        || [];
+      CAT.accesos           = cached.accesos           || [];
+      // Actualizar en segundo plano
+      setTimeout(() => actualizarCatalogosBackground(), 200);
       return;
     }
-
-    // Si no hay caché, cargar todo en paralelo
+    // Sin caché — cargar una sola llamada
     await actualizarCatalogos();
   } catch(e) {
     console.error('Error cargando catálogos:', e);
@@ -1273,16 +1268,16 @@ async function cargarCatalogos() {
 
 async function actualizarCatalogos() {
   try {
-    const [asos, coms, mats, accs] = await Promise.all([
-      apiGet({ action: 'getAsociaciones' }),
-      apiGet({ action: 'getCompradores' }),
-      apiGet({ action: 'getMateriales' }),
-      apiGet({ action: 'getAccesos', rol: SESSION.rol }),
-    ]);
-    if (asos.ok) { CAT.asociaciones = asos.data; cacheSet('cat_asociaciones', asos.data); }
-    if (coms.ok) { CAT.compradores  = coms.data; cacheSet('cat_compradores',  coms.data); }
-    if (mats.ok) { CAT.materiales   = mats.data; cacheSet('cat_materiales',   mats.data); }
-    if (accs.ok) { CAT.accesos      = accs.data; cacheSet('cat_accesos',      accs.data); }
+    // Una sola llamada para todos los catálogos
+    const res = await apiGet({ action: 'getCatalogos', rol: SESSION.rol });
+    if (res.ok) {
+      CAT.asociaciones      = res.data.asociaciones      || [];
+      CAT.todasAsociaciones = res.data.todasAsociaciones || [];
+      CAT.compradores       = res.data.compradores       || [];
+      CAT.materiales        = res.data.materiales        || [];
+      CAT.accesos           = res.data.accesos           || [];
+      cacheSet('cat_todos', res.data);
+    }
   } catch(e) {
     console.error('Error actualizando catálogos:', e);
   }
@@ -1294,7 +1289,38 @@ async function actualizarCatalogosBackground() {
 
 // Invalidar caché después de guardar datos
 function invalidarCache(tipo) {
-  cacheClear('cat_' + tipo);
+  cacheClear('cat_todos'); // Invalida todo para que recargue fresco
+}
+
+// ============================================================
+// SHEETS API DIRECTA — Lectura rápida
+// ============================================================
+
+async function sheetsGet(sheetName, filtros = {}) {
+  try {
+    const url = `${SHEETS_API}/${SHEET_ID}/values/${encodeURIComponent(sheetName)}`;
+    const res = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + ACCESS_TOKEN }
+    });
+    if (!res.ok) throw new Error('Error Sheets API');
+    const json = await res.json();
+    const rows = json.values || [];
+    if (rows.length < 2) return [];
+    const headers = rows[0];
+    let data = rows.slice(1).map(row => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = row[i] || ''; });
+      return obj;
+    });
+    // Aplicar filtros
+    Object.entries(filtros).forEach(([key, val]) => {
+      if (val) data = data.filter(r => r[key] === val);
+    });
+    return data;
+  } catch(e) {
+    console.error('Error Sheets API:', e);
+    return null; // null indica fallo → fallback a Apps Script
+  }
 }
 
 // ============================================================
@@ -1505,7 +1531,6 @@ window.addEventListener('load', async () => {
     mostrarLogin();
   }
 });
-
 
 // ============================================================
 // dashboard.js
@@ -1995,9 +2020,33 @@ async function renderEntregas() {
 
 async function cargarEntregas() {
   try {
-    const res = await apiGet({ action: 'getEntregas', ...ENTREGAS_FILTROS });
-    if (!res.ok) { showToast('Error cargando entregas'); return; }
-    ENTREGAS_DATA = res.data;
+    // Leer directamente desde Sheets API
+    let data = await sheetsGet('Entregas');
+    if (data === null) {
+      // Fallback a Apps Script
+      const res = await apiGet({ action: 'getEntregas', ...ENTREGAS_FILTROS });
+      if (!res.ok) { showToast('Error cargando entregas'); return; }
+      data = res.data;
+    } else {
+      // Enriquecer con nombres de asociación y comprador
+      const asoMap = {};
+      CAT.asociaciones.forEach(a => { asoMap[a['ID_Asociacion']] = a; });
+      const comMap = {};
+      CAT.compradores.forEach(c => { comMap[c['ID_Comprador']] = c; });
+      data = data.map(r => ({
+        ...r,
+        _nombreAsociacion:  asoMap[r['ID_Asociacion']]?.['Nombre'] || '',
+        _provinciaAsociacion: asoMap[r['ID_Asociacion']]?.['Provincia'] || '',
+        _ciudadAsociacion:  asoMap[r['ID_Asociacion']]?.['Ciudad'] || '',
+        _nombreComprador:   comMap[r['ID_Comprador']]?.['Nombre'] || '',
+        _nivelComprador:    comMap[r['ID_Comprador']]?.['Nivel Intermediacion'] || '',
+      }));
+      // Aplicar filtros localmente
+      if (ENTREGAS_FILTROS.anio)       data = data.filter(r => String(r['Año']) === ENTREGAS_FILTROS.anio);
+      if (ENTREGAS_FILTROS.mes)        data = data.filter(r => r['Mes'] === ENTREGAS_FILTROS.mes);
+      if (ENTREGAS_FILTROS.asociacion) data = data.filter(r => r['ID_Asociacion'] === ENTREGAS_FILTROS.asociacion);
+    }
+    ENTREGAS_DATA = data;
 
     // Poblar filtro de años
     const anios = [...new Set(ENTREGAS_DATA.map(r => String(r['Año'])).filter(Boolean))].sort();
@@ -2763,11 +2812,17 @@ async function renderAsociaciones() {
 
 async function cargarAsociaciones() {
   try {
-    const res = await apiGet({ action: 'getAsociaciones' });
-    // También traer inactivas para admin
-    const resAll = await apiGet({ action: 'getAllAsociaciones' });
-    ASOC_DATA = resAll.ok ? resAll.data : (res.ok ? res.data : []);
-    if (res.ok) CAT.asociaciones = res.data; // actualizar catálogo activas
+    // Usar Sheets API directa para lectura rápida
+    const todas = await sheetsGet('Asociaciones');
+    if (todas !== null) {
+      ASOC_DATA = todas;
+      CAT.asociaciones      = todas.filter(a => a['Estado'] === 'Activa');
+      CAT.todasAsociaciones = todas;
+    } else {
+      // Fallback a Apps Script
+      const res = await apiGet({ action: 'getAllAsociaciones' });
+      ASOC_DATA = res.ok ? res.data : (CAT.todasAsociaciones || []);
+    }
     renderTablaAsociaciones();
   } catch(e) {
     console.error(e);
@@ -3069,6 +3124,7 @@ async function guardarAsociacion(id) {
 
     showToast(id ? 'Asociación actualizada ✓' : 'Asociación creada ✓');
     cerrarModal();
+    invalidarCache('asociaciones');
     await cargarAsociaciones();
   } catch(e) {
     console.error(e);
