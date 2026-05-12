@@ -1461,7 +1461,7 @@ function cerrarModal() {
 // ── Formateo ─────────────────────────────────────────────────
 function fmtNum(n, dec = 2) {
   if (!n && n !== 0) return '—';
-  return parseFloat(n).toLocaleString('es-EC', {
+  return parseFloat(n).toLocaleString('en-US', {
     minimumFractionDigits: dec,
     maximumFractionDigits: dec,
   });
@@ -1469,7 +1469,7 @@ function fmtNum(n, dec = 2) {
 
 function fmtMoney(n) {
   if (!n && n !== 0) return '—';
-  return '$' + parseFloat(n).toLocaleString('es-EC', {
+  return '$' + parseFloat(n).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -2317,13 +2317,18 @@ function abrirFormEntrega(id = null) {
           </div>
           <div class="form-group">
             <label class="form-label">Asociación *</label>
-            <select class="form-select" id="ent-asociacion">
+            <select class="form-select" id="ent-asociacion" onchange="autocompletarProvincia(this.value)">
               <option value="">Selecciona una asociación</option>
               ${CAT.asociaciones.map(a =>
                 `<option value="${a['ID_Asociacion']}" ${e?.['ID_Asociacion']===a['ID_Asociacion']?'selected':''}>${a['Nombre']}</option>`
               ).join('')}
             </select>
           </div>
+<div class="form-group">
+  <label class="form-label">Provincia</label>
+  <input type="text" class="form-input" id="ent-provincia" readonly
+    style="background:#f8fbfd;color:var(--tm)" placeholder="Se completa automáticamente">
+</div>
           <div class="form-group">
             <label class="form-label">Comprador *</label>
             <select class="form-select" id="ent-comprador">
@@ -2402,6 +2407,7 @@ function editarEntrega(id) {
 }
 
 // ── Calcular valor en tiempo real ─────────────────────────
+function autocompletarProvincia(idAsociacion) { const aso = CAT.asociaciones.find(a => a['ID_Asociacion'] === idAsociacion); const input = document.getElementById('ent-provincia'); if (input) input.value = aso?.['Provincia'] || ''; }
 function calcularValorMaterial(mid, nombre) {
   const kg     = parseFloat(document.getElementById('mat-kg-' + mid)?.value || 0);
   const precio = parseFloat(document.getElementById('mat-precio-' + mid)?.value || 0);
@@ -2432,6 +2438,7 @@ async function guardarEntrega(id) {
   const obs       = document.getElementById('ent-obs')?.value;
 const actividad = document.getElementById('ent-actividad')?.value;
 const destino   = document.getElementById('ent-destino')?.value;
+const provincia = document.getElementById('ent-provincia')?.value;
   const archivos  = document.getElementById('ent-evidencias')?.files;
 
   if (!fecha || !idAsoc || !idComp) {
@@ -2448,6 +2455,7 @@ const destino   = document.getElementById('ent-destino')?.value;
     'Nivel Intermediacion': nivel,
 'Actividad Fuente': actividad,
 'Destino Final':    destino,
+'Provincia': provincia,
     'Observaciones':       obs,
     'ID_Usuario':          SESSION.email,
   };
