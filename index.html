@@ -1461,7 +1461,7 @@ function cerrarModal() {
 // ── Formateo ─────────────────────────────────────────────────
 function fmtNum(n, dec = 2) {
   if (!n && n !== 0) return '—';
-  return parseFloat(n).toLocaleString('en-US', {
+  return parseFloat(n).toLocaleString('es-EC', {
     minimumFractionDigits: dec,
     maximumFractionDigits: dec,
   });
@@ -1469,7 +1469,7 @@ function fmtNum(n, dec = 2) {
 
 function fmtMoney(n) {
   if (!n && n !== 0) return '—';
-  return '$' + parseFloat(n).toLocaleString('en-US', {
+  return '$' + parseFloat(n).toLocaleString('es-EC', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -1754,9 +1754,11 @@ function renderOperativo() {
 function renderDonut(dist) {
   const colores = {
     'PET': '#002343', 'Plástico Duro': '#079fff', 'Plástico Suave': '#00bda4',
-    'Cartón': '#f5ad21', 'Lata/Aluminio': '#9fda60', 'Vidrio': '#86d2da',
-    'Chatarra': '#5bbd70', 'Cobre': '#f82d72', 'Otros': '#dde4ea',
-  };
+    'Cartón': '#f5ad21', 'Lata/Aluminio': '#86d2da', 'Vidrio': '#5bbd70',
+    'Chatarra': '#f82d72', 'Cobre': '#9fda60', 'Papel Archivo': '#0778bf',
+    'Periódico': '#00bda4', 'Soplado': '#86d2da', 'Tetrapak': '#9fda60',
+    'Suela': '#f5ad21', 'Bronce': '#5bbd70', 'Batería': '#002343', 'Acero': '#079fff',
+};
   const total = Object.values(dist).reduce((s, v) => s + (v || 0), 0);
   if (total === 0) return '<p style="color:var(--tl);font-size:13px">Sin datos</p>';
 
