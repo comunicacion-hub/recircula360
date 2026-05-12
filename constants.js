@@ -2,8 +2,8 @@
 // CONSTANTES GLOBALES Y FUNCIONES DE FORMATO
 // ============================================================
 
-// URLs y config
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoOqPPbbOGh894CiDXny-8l44vp7JhluXcdORGz6s4dx_JDgOSX2ZXsPpGxfBJ59XK/exec'; // <-- REEMPLAZA POR TU URL REAL
+// URLs y config (YA CON TU URL REAL)
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoOqPPbbOGh894CiDXny-8l44vp7JhluXcdORGz6s4dx_JDgOSX2ZXsPpGxfBJ59XK/exec';
 const G_CLIENT_ID = '783730193199-d7nhahv3ou4rmps7nrpoop5cpor079ej.apps.googleusercontent.com';
 const DOMAIN = 'redesconrostro.org';
 const DRIVE_FOLDER_ROOT = '1AQyBa9AAdVzukBaZxWa7jpSN2DYkoFhv';
