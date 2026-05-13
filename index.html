@@ -1147,6 +1147,9 @@ tbody tr:focus-within .td-actions { opacity: 1; }
   </div>
 </div>
 
+<!-- Sidebar backdrop (móvil) -->
+<div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
 <!-- Toast -->
 <div id="toast"></div>
 
@@ -1186,9 +1189,14 @@ let CAT = {
 // ============================================================
 
 function iniciarLogin() {
+  if (!window.google?.accounts?.oauth2) {
+    showToast('Google aún no carga. Espera un momento.');
+    return;
+  }
   const client = google.accounts.oauth2.initTokenClient({
     client_id: G_CLIENT_ID,
-    scope: 'email profile https://www.googleapis.com/auth/drive.file',
+    // ↳ se añade scope de Sheets readonly para que sheetsGet() funcione
+    scope: 'email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets.readonly',
     callback: async (resp) => {
       if (resp.error) { showToast('Error al iniciar sesión'); return; }
       ACCESS_TOKEN = resp.access_token;
@@ -1257,13 +1265,18 @@ function recuperarSesion() {
 }
 
 function cerrarSesion() {
+  const tok = ACCESS_TOKEN;
   sessionStorage.clear();
   cacheClearAll();
   SESSION      = null;
   ACCESS_TOKEN = null;
   CAT          = { asociaciones: [], compradores: [], materiales: [], accesos: [] };
   mostrarLogin();
-  try { google.accounts.id.disableAutoSelect(); } catch(e) {}
+  try {
+    if (tok && window.google?.accounts?.oauth2) {
+      google.accounts.oauth2.revoke(tok, () => {});
+    }
+  } catch(e) {}
 }
 
 // ============================================================
@@ -1408,6 +1421,9 @@ async function sheetsGet(sheetName, filtros = {}) {
 // ============================================================
 
 function navTo(seccion) {
+  // En móvil, cerrar el sidebar al navegar
+  closeSidebarOnNav();
+
   // Actualizar sidebar
   document.querySelectorAll('.sb-item').forEach(el => el.classList.remove('active'));
   const navEl = document.getElementById('nav-' + seccion);
@@ -1511,18 +1527,30 @@ function mostrarApp() {
 
 function showToast(msg, dur = 3500) {
   const t = document.getElementById('toast');
+  if (!t) return;
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), dur);
+  if (showToast._tid) clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(() => t.classList.remove('show'), dur);
 }
 
-function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('open');
+function toggleSidebar(forceState) {
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  const willOpen = forceState !== undefined ? forceState : !sb.classList.contains('open');
+  sb.classList.toggle('open', willOpen);
+  if (bd) {
+    if (willOpen) { bd.style.display = 'block'; requestAnimationFrame(() => bd.style.opacity = '1'); bd.style.pointerEvents = 'auto'; }
+    else { bd.style.opacity = '0'; bd.style.pointerEvents = 'none'; setTimeout(() => { bd.style.display = 'none'; }, 260); }
+  }
+}
+function closeSidebarOnNav() {
+  if (window.matchMedia('(max-width: 768px)').matches) toggleSidebar(false);
 }
 
 // ── Modales ──────────────────────────────────────────────────
 function abrirModal(html) {
-  cerrarModal(); // cerrar cualquier modal abierto
+  cerrarModal(true);
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
   overlay.id        = 'modal-overlay';
@@ -1531,12 +1559,27 @@ function abrirModal(html) {
     if (e.target === overlay) cerrarModal();
   });
   document.body.appendChild(overlay);
+  setTimeout(() => {
+    const first = overlay.querySelector('input:not([readonly]):not([type="file"]), select, textarea');
+    if (first) try { first.focus({ preventScroll: true }); } catch(e) {}
+  }, 60);
 }
 
-function cerrarModal() {
+function cerrarModal(immediate = false) {
   const m = document.getElementById('modal-overlay');
-  if (m) m.remove();
+  if (!m) return;
+  if (immediate) { m.remove(); return; }
+  m.classList.add('closing');
+  setTimeout(() => m.remove(), 180);
 }
+
+// Esc cierra modal o sidebar móvil
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (document.getElementById('modal-overlay')) cerrarModal();
+    else if (document.getElementById('sidebar')?.classList.contains('open')) toggleSidebar(false);
+  }
+});
 
 // ── Formateo ─────────────────────────────────────────────────
 function fmtNum(n, dec = 2) {
@@ -1562,9 +1605,32 @@ function fmtTN(n) {
 
 function fmtFecha(f) {
   if (!f) return '—';
+  // Manejar 'YYYY-MM-DD' como fecha local (evita salto de día por zona horaria)
+  if (typeof f === 'string' && /^\d{4}-\d{2}-\d{2}/.test(f)) {
+    const [y, m, d] = f.substring(0,10).split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    if (!isNaN(dt)) return dt.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
   const d = new Date(f);
   if (isNaN(d)) return f;
   return d.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Escape seguro para inserción en HTML (previene XSS y crashes con comillas)
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Debounce
+function debounce(fn, ms = 250) {
+  let t;
+  return function(...args) {
+    clearTimeout(t);
+    t = setTimeout(() => fn.apply(this, args), ms);
+  };
 }
 
 // ── Helpers de listas ─────────────────────────────────────────
@@ -1592,6 +1658,13 @@ function nivelBadge(nivel) {
 // INICIO — verificar sesión al cargar
 // ============================================================
 window.addEventListener('load', async () => {
+  // Sombra dinámica en topbar al hacer scroll
+  const onScroll = () => {
+    const tb = document.querySelector('.main-topbar');
+    if (tb) tb.classList.toggle('scrolled', window.scrollY > 4);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+
   if (recuperarSesion()) {
     mostrarLoading();
     await cargarCatalogos();
@@ -2371,16 +2444,16 @@ function abrirFormEntrega(id = null) {
     const esPrio = mat['Priorizable'] === 'Sí' || mat['Priorizable'] === true;
     const kg     = e ? (e[nombre + ' Kilos']  || '') : '';
     const precio = e ? (e[nombre + ' Precio'] || '') : '';
-    const venta  = e ? (e[nombre + ' Valor Venta'] || 0) : 0;
-    const mid    = nombre.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'');
+    const venta  = e ? parseFloat(e[nombre + ' Valor Venta'] || 0) : 0;
+    const mid    = nombre.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'') || ('mat' + (filaMaterial._n = (filaMaterial._n||0)+1));
     return `
       <div class="material-row ${esPrio ? 'material-priorizable' : ''}">
-        <div class="material-row-label">${nombre}${esPrio ? ' <span class="badge badge-cyan" style="font-size:9px;padding:1px 6px">Priorizable</span>' : ''}</div>
+        <div class="material-row-label">${esc(nombre)}${esPrio ? ' <span class="badge badge-cyan" style="font-size:9px;padding:1px 6px">Priorizable</span>' : ''}</div>
         <input type="number" class="form-input" id="mat-kg-${mid}" placeholder="Kilos" value="${kg}" min="0" step="0.01"
-          oninput="calcularValorMaterial('${mid}','${nombre}')">
+          oninput="calcularValorMaterial('${mid}','${esc(nombre)}')">
         <input type="number" class="form-input" id="mat-precio-${mid}" placeholder="$/kg" value="${precio}" min="0" step="0.01"
-          oninput="calcularValorMaterial('${mid}','${nombre}')">
-        <div class="material-valor" id="mat-venta-${mid}">${venta > 0 ? fmtMoney(venta) : '—'}</div>
+          oninput="calcularValorMaterial('${mid}','${esc(nombre)}')">
+        <div class="material-valor" id="mat-venta-${mid}" data-valor="${venta || 0}">${venta > 0 ? fmtMoney(venta) : '—'}</div>
       </div>`;
   }
 
@@ -2402,7 +2475,7 @@ function abrirFormEntrega(id = null) {
             <select class="form-select" id="ent-asociacion" onchange="autocompletarProvincia(this.value)">
               <option value="">Selecciona una asociación</option>
               ${CAT.asociaciones.map(a =>
-                `<option value="${a['ID_Asociacion']}" ${e?.['ID_Asociacion']===a['ID_Asociacion']?'selected':''}>${a['Nombre']}</option>`
+                `<option value="${a['ID_Asociacion']}" ${e?.['ID_Asociacion']===a['ID_Asociacion']?'selected':''}>${esc(a['Nombre'])}</option>`
               ).join('')}
             </select>
           </div>
@@ -2416,7 +2489,7 @@ function abrirFormEntrega(id = null) {
             <select class="form-select" id="ent-comprador">
               <option value="">Selecciona un comprador</option>
               ${CAT.compradores.map(c =>
-                `<option value="${c['ID_Comprador']}" ${e?.['ID_Comprador']===c['ID_Comprador']?'selected':''}>${c['Nombre']}</option>`
+                `<option value="${c['ID_Comprador']}" ${e?.['ID_Comprador']===c['ID_Comprador']?'selected':''}>${esc(c['Nombre'])}</option>`
               ).join('')}
             </select>
           </div>
@@ -2482,6 +2555,12 @@ function abrirFormEntrega(id = null) {
       </div>
     </div>
   `);
+
+  // Si es edición, autocompletar provincia y recalcular total
+  if (e) {
+    autocompletarProvincia(e['ID_Asociacion']);
+    recalcularTotalEntrega();
+  }
 }
 
 function editarEntrega(id) {
@@ -2489,20 +2568,29 @@ function editarEntrega(id) {
 }
 
 // ── Calcular valor en tiempo real ─────────────────────────
-function autocompletarProvincia(idAsociacion) { const aso = CAT.asociaciones.find(a => a['ID_Asociacion'] === idAsociacion); const input = document.getElementById('ent-provincia'); if (input) input.value = aso?.['Provincia'] || ''; }
+function autocompletarProvincia(idAsociacion) {
+  const aso = CAT.asociaciones.find(a => a['ID_Asociacion'] === idAsociacion);
+  const input = document.getElementById('ent-provincia');
+  if (input) input.value = aso?.['Provincia'] || '';
+}
+
 function calcularValorMaterial(mid, nombre) {
   const kg     = parseFloat(document.getElementById('mat-kg-' + mid)?.value || 0);
   const precio = parseFloat(document.getElementById('mat-precio-' + mid)?.value || 0);
   const venta  = kg * precio;
 
   const el = document.getElementById('mat-venta-' + mid);
-  if (el) el.textContent = venta > 0 ? fmtMoney(venta) : '—';
+  if (el) {
+    el.dataset.valor = venta || 0;  // ← guardamos valor crudo para sumar fiable
+    el.textContent = venta > 0 ? fmtMoney(venta) : '—';
+  }
+  recalcularTotalEntrega();
+}
 
-  // Recalcular total general
+function recalcularTotalEntrega() {
   let total = 0;
   document.querySelectorAll('[id^="mat-venta-"]').forEach(el => {
-    const v = parseFloat(el.textContent.replace(/[$,]/g,'')) || 0;
-    total += v;
+    total += parseFloat(el.dataset.valor || 0);
   });
   const elTotal = document.getElementById('ent-total');
   if (elTotal) elTotal.textContent = fmtMoney(total);
@@ -2518,9 +2606,7 @@ async function guardarEntrega(id) {
   const idComp    = document.getElementById('ent-comprador')?.value;
   const nivel     = document.getElementById('ent-nivel')?.value;
   const obs       = document.getElementById('ent-obs')?.value;
-const actividad = document.getElementById('ent-actividad')?.value;
-const destino   = document.getElementById('ent-destino')?.value;
-const provincia = document.getElementById('ent-provincia')?.value;
+  const provincia = document.getElementById('ent-provincia')?.value;
   const archivos  = document.getElementById('ent-evidencias')?.files;
 
   if (!fecha || !idAsoc || !idComp) {
@@ -2535,11 +2621,9 @@ const provincia = document.getElementById('ent-provincia')?.value;
     'ID_Asociacion':       idAsoc,
     'ID_Comprador':        idComp,
     'Nivel Intermediacion': nivel,
-'Actividad Fuente': actividad,
-'Destino Final':    destino,
-'Provincia': provincia,
-    'Observaciones':       obs,
-    'ID_Usuario':          SESSION.email,
+    'Provincia':            provincia,
+    'Observaciones':        obs,
+    'ID_Usuario':           SESSION.email,
   };
 
   // Recoger materiales
@@ -3004,7 +3088,7 @@ async function renderAsociaciones() {
       <span class="filter-label-inline"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
       <div class="filter-divider"></div>
       <input type="text" class="filter-select-sm" id="asoc-buscar"
-        placeholder="Buscar asociación..." oninput="buscarAsociacion(this.value)"
+        placeholder="Buscar asociación..." oninput="buscarAsociacionDebounced(this.value)"
         style="min-width:200px">
       <select class="filter-select-sm" id="asoc-estado-f" onchange="filtrarEstadoAsoc(this.value)">
         <option value="">Todos los estados</option>
@@ -3056,6 +3140,7 @@ function buscarAsociacion(val) {
   ASOC_BUSCAR = val.toLowerCase();
   renderTablaAsociaciones();
 }
+const buscarAsociacionDebounced = debounce(buscarAsociacion, 220);
 
 function filtrarEstadoAsoc(val) {
   ASOC_ESTADO = val;
@@ -3098,32 +3183,34 @@ function renderTablaAsociaciones() {
     const estadoBadge  = a['Estado'] === 'Activa'
       ? '<span class="badge badge-green">Activa</span>'
       : '<span class="badge badge-warn">Inactiva</span>';
+    const nombreSafe = esc(a['Nombre'] || '');
+    const idSafe     = esc(a['ID_Asociacion'] || '');
 
     return `
       <tr>
-        <td style="font-weight:600;color:var(--b1)">${a['Nombre'] || '—'}</td>
-        <td>${a['Provincia'] || '—'}</td>
-        <td>${a['Ciudad'] || '—'}</td>
-        <td style="font-size:12px;color:var(--tm)">${a['Tipo'] || '—'}</td>
+        <td style="font-weight:600;color:var(--b1)">${nombreSafe || '—'}</td>
+        <td>${esc(a['Provincia']) || '—'}</td>
+        <td>${esc(a['Ciudad']) || '—'}</td>
+        <td style="font-size:12px;color:var(--tm)">${esc(a['Tipo']) || '—'}</td>
         <td style="text-align:center;font-weight:600">${a['Numero de Recicladores'] || '—'}</td>
         <td>${estadoBadge}</td>
         <td>
           ${tieneCarpeta
-            ? `<a href="https://drive.google.com/drive/folders/${a['ID_Carpeta_Drive']}"
+            ? `<a href="https://drive.google.com/drive/folders/${esc(a['ID_Carpeta_Drive'])}"
                 target="_blank" class="btn btn-glass btn-sm">
                 <i class="ti ti-folder"></i> Ver Drive
                </a>`
-            : `<button class="btn btn-glass btn-sm" onclick="crearCarpetaAsociacion('${a['ID_Asociacion']}','${a['Nombre'].replace(/'/g,"\\'")}')">
+            : `<button class="btn btn-glass btn-sm" data-id="${idSafe}" data-nombre="${nombreSafe}" onclick="crearCarpetaAsociacion(this.dataset.id, this.dataset.nombre)">
                 <i class="ti ti-folder-plus"></i> Crear carpeta
                </button>`
           }
         </td>
         <td>
           <div class="td-actions">
-            <button class="btn btn-glass btn-sm" onclick="verAsociacion('${a['ID_Asociacion']}')">
+            <button class="btn btn-glass btn-sm" onclick="verAsociacion('${idSafe}')">
               <i class="ti ti-eye"></i>
             </button>
-            <button class="btn btn-primary btn-sm" onclick="abrirFormAsociacion('${a['ID_Asociacion']}')">
+            <button class="btn btn-primary btn-sm" onclick="abrirFormAsociacion('${idSafe}')">
               <i class="ti ti-pencil"></i>
             </button>
           </div>
@@ -3213,14 +3300,14 @@ function verAsociacion(id) {
 
         <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
           ${a['ID_Carpeta_Drive']
-            ? `<a href="https://drive.google.com/drive/folders/${a['ID_Carpeta_Drive']}"
+            ? `<a href="https://drive.google.com/drive/folders/${esc(a['ID_Carpeta_Drive'])}"
                 target="_blank" class="btn btn-glass">
                 <i class="ti ti-folder"></i> Ver carpeta Drive
                </a>`
-            : `<button class="btn btn-glass" onclick="cerrarModal();crearCarpetaAsociacion('${a['ID_Asociacion']}','${a['Nombre'].replace(/'/g,"\\'")}')">
+            : `<button class="btn btn-glass" data-id="${esc(a['ID_Asociacion'])}" data-nombre="${esc(a['Nombre']||'')}" onclick="cerrarModal();crearCarpetaAsociacion(this.dataset.id, this.dataset.nombre)">
                 <i class="ti ti-folder-plus"></i> Crear carpeta Drive
                </button>`}
-          <button class="btn btn-primary" onclick="cerrarModal();abrirFormAsociacion('${a['ID_Asociacion']}')">
+          <button class="btn btn-primary" onclick="cerrarModal();abrirFormAsociacion('${esc(a['ID_Asociacion'])}')">
             <i class="ti ti-pencil"></i> Editar
           </button>
         </div>
@@ -3406,6 +3493,9 @@ function renderConfiguracion() {
       <button class="tab-btn" id="cfg-tab-materiales" onclick="switchConfigTab('materiales')">
         <i class="ti ti-recycle"></i> Materiales
       </button>
+      <button class="tab-btn" id="cfg-tab-compradores" onclick="switchConfigTab('compradores')">
+        <i class="ti ti-truck"></i> Compradores
+      </button>
       <button class="tab-btn" id="cfg-tab-ajustes" onclick="switchConfigTab('ajustes')">
         <i class="ti ti-settings-2"></i> Ajustes
       </button>
@@ -3423,6 +3513,7 @@ function switchConfigTab(tab) {
   switch (tab) {
     case 'usuarios':    renderUsuarios();    break;
     case 'materiales':  renderMateriales();  break;
+    case 'compradores': renderCompradores(); break;
     case 'ajustes':     renderAjustes();     break;
   }
 }
