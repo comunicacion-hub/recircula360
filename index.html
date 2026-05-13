@@ -35,6 +35,8 @@
 /* ── Reset ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html { scroll-behavior: smooth; }
+
 body {
   font-family: 'Outfit', sans-serif;
   color: var(--tx);
@@ -42,7 +44,39 @@ body {
   min-height: 100vh;
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+
+/* Respeta prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Animaciones reutilizables */
+@keyframes rcr-fadeIn      { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rcr-fadeSlideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes rcr-modalIn     { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes rcr-overlayIn   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rcr-shimmer     { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+
+.anim-fade    { animation: rcr-fadeIn 0.25s ease-out both; }
+.anim-fade-up { animation: rcr-fadeSlideUp 0.3s ease-out both; }
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, #eef2f6 0%, #f6f9fc 50%, #eef2f6 100%);
+  background-size: 800px 100%;
+  animation: rcr-shimmer 1.4s linear infinite;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+.skeleton-line { height: 12px; margin: 8px 0; border-radius: 6px; }
+.skeleton-row  { height: 44px; margin-bottom: 8px; border-radius: var(--radius-sm); }
+.skeleton-kpi  { height: 86px; }
 
 /* ── Utilidades ─────────────────────────────────────────── */
 .hidden { display: none !important; }
@@ -66,10 +100,14 @@ body {
   font-weight: 600;
   cursor: pointer;
   border: 1.5px solid transparent;
-  transition: opacity 0.15s, transform 0.1s, background 0.15s;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease, opacity 0.18s ease;
   white-space: nowrap;
+  user-select: none;
 }
-.btn:active { transform: scale(0.97); }
+.btn:hover  { transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(0.97); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(7,120,191,0.18); }
 .btn-primary { background: #fff; border-color: var(--b2); color: var(--b2); }
 .btn-primary:hover { background: #f0f7ff; }
 .btn-success { background: #fff; border-color: var(--g2); color: var(--g2); }
@@ -86,7 +124,10 @@ body {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   padding: 18px 20px;
+  transition: box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease;
 }
+.kpi-card { transition: box-shadow 0.22s ease, transform 0.22s ease, border-color 0.22s ease; }
+.kpi-card:hover { box-shadow: 0 6px 22px rgba(0,35,67,0.07); transform: translateY(-2px); border-color: rgba(7,120,191,0.18); }
 
 .card-title {
   font-size: 13px;
@@ -135,11 +176,16 @@ body {
   font-size: 13px;
   font-weight: 500;
   z-index: 9999;
-  transition: transform 0.3s;
+  transition: transform 0.35s cubic-bezier(.2,.8,.2,1), opacity 0.25s ease;
   white-space: nowrap;
   pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 12px 32px rgba(0, 35, 67, 0.25);
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-#toast.show { transform: translateX(-50%) translateY(0); }
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
 /* ── Spinner ─────────────────────────────────────────────── */
 .spinner {
@@ -250,7 +296,16 @@ body {
   top: 0; left: 0;
   height: 100vh;
   z-index: 100;
-  transition: transform 0.25s;
+  transition: transform 0.3s cubic-bezier(.2,.8,.2,1), box-shadow 0.25s ease;
+}
+.sidebar-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 35, 67, 0.4);
+  z-index: 99;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  display: none;
 }
 
 .sb-head {
@@ -296,10 +351,12 @@ body {
   user-select: none;
 }
 .sb-item:hover { background: #f0f7fb; color: var(--b2); }
+.sb-item:active { transform: scale(0.98); }
 .sb-item.active {
   background: linear-gradient(135deg, #e4f4fb, #eef8ff);
   color: var(--b1);
   font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--b2);
 }
 .sb-item i { font-size: 18px; flex-shrink: 0; }
 .sb-item.admin-only { color: #b8c8d4; }
@@ -356,7 +413,9 @@ body {
 }
 
 .main-topbar {
-  background: #fff;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: saturate(180%) blur(10px);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
   border-bottom: 1px solid var(--border);
   padding: 14px 28px;
   display: flex;
@@ -367,7 +426,9 @@ body {
   top: 0;
   z-index: 50;
   gap: 12px;
+  transition: box-shadow 0.25s ease;
 }
+.main-topbar.scrolled { box-shadow: 0 4px 18px rgba(0,35,67,0.06); }
 
 .topbar-title { font-size: 19px; font-weight: 700; color: var(--b1); }
 .topbar-sub   { font-size: 12px; color: var(--tm); margin-top: 2px; }
@@ -393,6 +454,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  animation: rcr-fadeSlideUp 0.32s ease-out both;
 }
 
 /* ============================================================
@@ -483,7 +545,16 @@ body {
   color: var(--b1);
   border-color: var(--border);
   margin-bottom: -1px;
+  position: relative;
 }
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  left: 12px; right: 12px; bottom: -1px;
+  height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--b1), var(--b2));
+}
+#dash-tab-content, #config-tab-content { animation: rcr-fadeSlideUp 0.28s ease-out both; }
 
 /* ============================================================
    MODALES
@@ -493,12 +564,16 @@ body {
   inset: 0;
   background: rgba(0, 35, 67, 0.35);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  animation: rcr-overlayIn 0.2s ease-out both;
 }
+.modal-overlay.closing { animation: rcr-overlayIn 0.18s ease-out reverse both; }
+.modal-overlay.closing .modal { animation: rcr-modalIn 0.18s ease-out reverse both; }
 
 .modal {
   background: #fff;
@@ -508,6 +583,7 @@ body {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 35, 67, 0.15);
+  animation: rcr-modalIn 0.25s cubic-bezier(.2,.8,.2,1) both;
 }
 
 .modal-head {
@@ -670,11 +746,15 @@ tbody td {
   vertical-align: middle;
 }
 
+tbody tr { transition: background-color 0.15s ease; }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: #f8fbfd; }
 
-.td-actions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.15s; }
-tbody tr:hover .td-actions { opacity: 1; }
+.td-actions { display: flex; gap: 6px; opacity: 0; transition: opacity 0.18s ease; }
+tbody tr:hover .td-actions,
+tbody tr:focus-within .td-actions { opacity: 1; }
+/* En móvil, siempre visibles para evitar acciones invisibles */
+@media (hover: none) { .td-actions { opacity: 1; } }
 
 /* ============================================================
    DASHBOARD — KPIs
