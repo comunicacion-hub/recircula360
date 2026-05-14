@@ -3,11 +3,11 @@
 // Constantes, API, navegación, helpers globales
 // ============================================================
 
-const SCRIPT_URL        = 'https://script.google.com/macros/s/AKfycby4_wIZLpCw34Qcwr2koCbgWZevGJh3tQ4zq8Vp_h0815SG5JaEA6__1I0WlMOnI5TR/exec';
+const SCRIPT_URL        = 'https://script.google.com/macros/s/AKfycby4_wIZLpCw34Qcwr2koCbgWZevGJh3tQ4zq8Vp_h0815SG5JaEA6__1I0WlMOnI5TR/exec;
 const G_CLIENT_ID       = '783730193199-d7nhahv3ou4rmps7nrpoop5cpor079ej.apps.googleusercontent.com';
 const DOMAIN            = 'redesconrostro.org';
 const DRIVE_FOLDER_ROOT = '1AQyBa9AAdVzukBaZxWa7jpSN2DYkoFhv';
-const SHEET_ID          = '1WwvL0kna3SiFrByvlV4kJjJ1An7Dz4OYMDb6SCz8VD0';
+const SHEET_ID          = '1WwvL0kna3SiFrByvIV4kJjJ1An7Dz4OYMDb6SCz8VD0';
 const SHEETS_API        = 'https://sheets.googleapis.com/v4/spreadsheets';
 const HUB_URL           = 'https://comunicacion-hub.github.io/recirculaapp/';
 
