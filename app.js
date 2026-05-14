@@ -257,7 +257,6 @@ async function sheetsGet(sheetName, filtros = {}) {
     await renovarToken();
     return null;
   }
-  }
 }
 function renovarToken() {
   return new Promise((resolve) => {
