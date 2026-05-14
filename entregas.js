@@ -118,8 +118,6 @@ function resetFiltrosEntregas() {
 
 function renderTablaEntregas() {
   console.log('Primera entrega ID:', ENTREGAS_DATA[0]?.['ID_Entrega']);
-  if (!wrap) return;
-
   if (!ENTREGAS_DATA.length) {
     wrap.innerHTML = `
       <div style="text-align:center;padding:50px;color:var(--tl)">
