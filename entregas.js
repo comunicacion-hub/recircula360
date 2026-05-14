@@ -214,7 +214,8 @@ function confirmarEliminarEntrega(id, folderId) {
       </div>
       <div class="modal-foot">
         <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-danger" onclick="eliminarEntrega('${id}','${folderId}')">
+        <button class="btn btn-danger" data-id="${id}" data-folder="${folderId}"
+          onclick="eliminarEntrega(this.dataset.id, this.dataset.folder)">
           <i class="ti ti-trash"></i> Eliminar
         </button>
       </div>
