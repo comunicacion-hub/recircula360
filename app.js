@@ -519,30 +519,21 @@ function nivelBadge(nivel) {
 // INICIO — verificar sesión al cargar
 // ============================================================
 window.addEventListener('load', async () => {
-  // Sombra dinámica en topbar al hacer scroll
-  const onScroll = () => {
-    const tb = document.querySelector('.main-topbar');
-    if (tb) tb.classList.toggle('scrolled', window.scrollY > 4);
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-
   if (recuperarSesion()) {
     mostrarLoading();
     await cargarCatalogos();
     mostrarApp();
-
-    // Reconstruir UI del usuario
-    const iniciales = SESSION.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    const iniciales = SESSION.nombre.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
     document.getElementById('user-avatar').textContent = iniciales;
     document.getElementById('user-name').textContent   = SESSION.nombre;
     document.getElementById('user-role').textContent   = SESSION.rol;
     if (SESSION.rol === 'Admin') {
       document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
     }
-
     navTo('dashboard');
   } else {
-    mostrarLogin();
+    // Sin sesión → redirigir al hub
+    window.location.href = 'https://comunicacion-hub.github.io/recirculaapp/';
   }
 });
 
