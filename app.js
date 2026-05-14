@@ -536,5 +536,3 @@ window.addEventListener('load', async () => {
     window.location.href = 'https://comunicacion-hub.github.io/recirculaapp/';
   }
 });
-
-// ============================================================
