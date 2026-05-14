@@ -79,7 +79,7 @@ function buscarAsociacion(val) {
   ASOC_BUSCAR = val.toLowerCase();
   renderTablaAsociaciones();
 }
-const buscarAsociacionDebounced = debounce(buscarAsociacion, 220);
+const buscarAsociacionDebounced = (val) => buscarAsociacion(val);
 
 function filtrarEstadoAsoc(val) {
   ASOC_ESTADO = val;
