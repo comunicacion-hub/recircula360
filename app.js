@@ -3,7 +3,7 @@
 // Constantes, API, navegación, helpers globales
 // ============================================================
 
-const SCRIPT_URL        = 'https://script.google.com/macros/s/AKfycby4_wIZLpCw34Qcwr2koCbgWZevGJh3tQ4zq8Vp_h0815SG5JaEA6__1I0WlMOnI5TR/exec;
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4_wIZLpCw34Qcwr2koCbgWZevGJh3tQ4zq8Vp_h0815SG5JaEA6__1I0WlMOnI5TR/exec';
 const G_CLIENT_ID       = '783730193199-d7nhahv3ou4rmps7nrpoop5cpor079ej.apps.googleusercontent.com';
 const DOMAIN            = 'redesconrostro.org';
 const DRIVE_FOLDER_ROOT = '1AQyBa9AAdVzukBaZxWa7jpSN2DYkoFhv';
