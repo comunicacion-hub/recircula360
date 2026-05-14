@@ -381,10 +381,6 @@ function abrirFormEntrega(id = null) {
               ${['Recuperación a pie de Vereda / Fuente','Recuperación en Relleno','Recuperación GIRA','Otros'].map(a=>`<option value="${a}" ${e?.['Actividad Fuente']===a?'selected':''}>${a}</option>`).join('')}
             </select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Destino final</label>
-            <input type="text" class="form-input" id="ent-destino" placeholder="Ej: Se transforma en INTERCIA S.A." value="${e?.['Destino Final']||''}">
-          </div>
         </div>
 
         <div class="materiales-section" style="margin-bottom:14px">
@@ -411,24 +407,6 @@ function abrirFormEntrega(id = null) {
         <div class="form-group" style="margin-top:14px">
           <label class="form-label">Observaciones</label>
           <textarea class="form-textarea" id="ent-obs" placeholder="Notas adicionales...">${e?.['Observaciones']||''}</textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Evidencias</label>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-            <button type="button" class="btn btn-glass btn-sm" onclick="document.getElementById('ent-ev-input').click()">
-              <i class="ti ti-paperclip"></i> Adjuntar archivos
-            </button>
-            <span style="font-size:12px;color:var(--tl)">PDF, JPG, PNG</span>
-          </div>
-          <input type="file" id="ent-ev-input" multiple accept=".pdf,.jpg,.jpeg,.png,.webp"
-            style="display:none" onchange="agregarEvidencias(this.files)">
-          <div id="evidencias-lista" style="display:flex;flex-direction:column;gap:6px"></div>
-          ${e?.['ID_Carpeta_Evidencia']?`
-            <a href="https://drive.google.com/drive/folders/${e['ID_Carpeta_Evidencia']}" target="_blank"
-              class="btn btn-glass btn-sm" style="margin-top:8px;display:inline-flex">
-              <i class="ti ti-folder"></i> Ver evidencias actuales en Drive
-            </a>`:''}
         </div>
 
       </div>
