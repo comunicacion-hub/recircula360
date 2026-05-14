@@ -1,14 +1,11 @@
 // ============================================================
 // RECIRCULA 360 — app.js
-// Constantes, API, navegación, helpers globales
 // ============================================================
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4_wIZLpCw34Qcwr2koCbgWZevGJh3tQ4zq8Vp_h0815SG5JaEA6__1I0WlMOnI5TR/exec';
+const SCRIPT_URL        = 'https://script.google.com/macros/s/AKfycby4_wIZLpCw34Qcwr2koCbgWZevGJh3tQ4zq8Vp_h0815SG5JaEA6__1I0WlMOnI5TR/exec';
 const G_CLIENT_ID       = '783730193199-d7nhahv3ou4rmps7nrpoop5cpor079ej.apps.googleusercontent.com';
 const DOMAIN            = 'redesconrostro.org';
 const DRIVE_FOLDER_ROOT = '1AQyBa9AAdVzukBaZxWa7jpSN2DYkoFhv';
-const SHEET_ID          = '1WwvL0kna3SiFrByvIV4kJjJ1An7Dz4OYMDb6SCz8VD0';
-const SHEETS_API        = 'https://sheets.googleapis.com/v4/spreadsheets';
 const HUB_URL           = 'https://comunicacion-hub.github.io/recirculaapp/';
 
 let SESSION      = null;
@@ -24,7 +21,7 @@ let CAT = {
 };
 
 // ============================================================
-// SESIÓN — viene del hub
+// SESIÓN
 // ============================================================
 
 function recuperarSesion() {
@@ -47,9 +44,7 @@ function cerrarSesion() {
   SESSION = null; ACCESS_TOKEN = null;
   CAT = { asociaciones: [], todasAsociaciones: [], compradores: [], materiales: [], accesos: [] };
   try {
-    if (tok && window.google?.accounts?.oauth2) {
-      google.accounts.oauth2.revoke(tok, () => {});
-    }
+    if (tok && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(tok, () => {});
   } catch(e) {}
   window.location.href = HUB_URL;
 }
@@ -63,11 +58,9 @@ async function iniciarApp() {
   document.getElementById('user-avatar').textContent = iniciales;
   document.getElementById('user-name').textContent   = SESSION.nombre;
   document.getElementById('user-role').textContent   = SESSION.rol;
-
   if (SESSION.rol === 'Admin') {
     document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
   }
-
   await cargarCatalogos();
   mostrarApp();
   navTo('dashboard');
@@ -81,7 +74,6 @@ const CACHE_TTL = 30 * 60 * 1000;
 function cacheSet(key, data) {
   try { localStorage.setItem('rcr_' + key, JSON.stringify({ data, ts: Date.now() })); } catch(e) {}
 }
-
 function cacheGet(key) {
   try {
     const raw = localStorage.getItem('rcr_' + key);
@@ -91,11 +83,7 @@ function cacheGet(key) {
     return data;
   } catch(e) { return null; }
 }
-
-function cacheClear(key) {
-  try { localStorage.removeItem('rcr_' + key); } catch(e) {}
-}
-
+function cacheClear(key) { try { localStorage.removeItem('rcr_' + key); } catch(e) {} }
 function cacheClearAll() { cacheClear('cat_todos'); }
 function invalidarCache() { cacheClear('cat_todos'); }
 
@@ -112,9 +100,7 @@ async function cargarCatalogos() {
       return;
     }
     await actualizarCatalogos();
-  } catch(e) {
-    console.error('Error cargando catálogos:', e);
-  }
+  } catch(e) { console.error('Error cargando catálogos:', e); }
 }
 
 async function actualizarCatalogos() {
@@ -128,36 +114,20 @@ async function actualizarCatalogos() {
       CAT.accesos           = res.data.accesos           || [];
       cacheSet('cat_todos', res.data);
     }
-  } catch(e) {
-    console.error('Error actualizando catálogos:', e);
-  }
+  } catch(e) { console.error('Error actualizando catálogos:', e); }
 }
 
 // ============================================================
-// SHEETS API DIRECTA
+// SHEETS GET — deshabilitado, usar siempre Apps Script
 // ============================================================
 
 async function sheetsGet(sheetName) {
-  try {
-    const url = `${SHEETS_API}/${SHEET_ID}/values/${encodeURIComponent(sheetName)}`;
-    const res = await fetch(url, {
-      headers: { Authorization: 'Bearer ' + ACCESS_TOKEN }
-    });
-    if (!res.ok) throw new Error('Error Sheets API ' + res.status);
-    const json = await res.json();
-    const rows = json.values || [];
-    if (rows.length < 2) return [];
-    const headers = rows[0];
-    return rows.slice(1).map(row => {
-      const obj = {};
-      headers.forEach((h, i) => { obj[h] = row[i] || ''; });
-      return obj;
-    });
-  } catch(e) {
-    console.warn('Sheets API falló:', e.message);
-    return null;
-  }
+  return null; // Todo va por Apps Script
 }
+
+// ============================================================
+// DRIVE — subir archivos
+// ============================================================
 
 async function subirDrive(file, folderId, nombre) {
   const metadata = { name: nombre || file.name, parents: [folderId] };
@@ -183,10 +153,7 @@ async function apiGet(params) {
 }
 
 async function apiPost(body) {
-  const res = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    body:   JSON.stringify(body),
-  });
+  const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(body) });
   if (!res.ok) throw new Error('Error HTTP ' + res.status);
   return res.json();
 }
@@ -202,18 +169,13 @@ function navTo(seccion) {
   if (navEl) navEl.classList.add('active');
 
   const titulos = {
-    dashboard:     { titulo: '' },
-    entregas:      { titulo: 'Entregas' },
-    asociaciones:  { titulo: 'Asociaciones' },
-    accesos:       { titulo: 'Accesos' },
-    configuracion: { titulo: 'Configuración' },
+    dashboard: '', entregas: 'Entregas', asociaciones: 'Asociaciones',
+    accesos: 'Accesos', configuracion: 'Configuración',
   };
 
-  const info = titulos[seccion] || { titulo: seccion };
-  document.getElementById('topbar-title').textContent = info.titulo;
+  document.getElementById('topbar-title').textContent = titulos[seccion] || seccion;
   document.getElementById('topbar-sub').textContent   =
     seccion === 'dashboard' ? 'Bienvenido, ' + SESSION.nombre.split(' ')[0] + ' 👋' : '';
-
   document.getElementById('main-content').innerHTML   = '';
   document.getElementById('topbar-actions').innerHTML = '';
 
@@ -267,8 +229,7 @@ function toggleSidebar(forceState) {
       bd.style.display = 'block';
       requestAnimationFrame(() => { bd.style.opacity = '1'; bd.style.pointerEvents = 'auto'; });
     } else {
-      bd.style.opacity = '0';
-      bd.style.pointerEvents = 'none';
+      bd.style.opacity = '0'; bd.style.pointerEvents = 'none';
       setTimeout(() => { bd.style.display = 'none'; }, 260);
     }
   }
@@ -307,21 +268,14 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// ── Formateo ─────────────────────────────────────────────────
 function fmtNum(n, dec = 2) {
   if (!n && n !== 0) return '—';
-  return parseFloat(n).toLocaleString('es-EC', {
-    minimumFractionDigits: dec,
-    maximumFractionDigits: dec,
-  });
+  return parseFloat(n).toLocaleString('es-EC', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
 function fmtMoney(n) {
   if (!n && n !== 0) return '—';
-  return '$' + parseFloat(n).toLocaleString('es-EC', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return '$' + parseFloat(n).toLocaleString('es-EC', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtFecha(f) {
@@ -338,25 +292,18 @@ function fmtFecha(f) {
 
 function esc(s) {
   if (s === null || s === undefined) return '';
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 function debounce(fn, ms = 250) {
   let t;
-  return function(...args) {
-    clearTimeout(t);
-    t = setTimeout(() => fn.apply(this, args), ms);
-  };
+  return function(...args) { clearTimeout(t); t = setTimeout(() => fn.apply(this, args), ms); };
 }
 
 function nivelBadge(nivel) {
-  const map = {
-    'Nivel 1': 'badge-blue', 'Nivel 2': 'badge-green',
-    'Nivel 3': 'badge-warn', 'Transformador': 'badge-cyan',
-  };
-  return `<span class="badge ${map[nivel]||'badge-blue'}">${nivel || '—'}</span>`;
+  const map = { 'Nivel 1':'badge-blue','Nivel 2':'badge-green','Nivel 3':'badge-warn','Transformador':'badge-cyan' };
+  return `<span class="badge ${map[nivel]||'badge-blue'}">${nivel||'—'}</span>`;
 }
 
 // ============================================================
