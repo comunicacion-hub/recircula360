@@ -323,7 +323,9 @@ function abrirFormEntrega(id = null) {
         <div class="form-grid-3">
           <div class="form-group">
             <label class="form-label">Fecha</label>
-            <input type="date" class="form-input" id="ent-fecha" value="${e?.['Fecha']?String(e.Fecha).substring(0,10):''}">
+            <input type="date" class="form-input" id="ent-fecha" readonly
+              style="background:#f8fbfd;color:var(--tm)"
+              value="${e?.['Fecha']?String(e.Fecha).substring(0,10):new Date().toISOString().substring(0,10)}">
           </div>
           <div class="form-group">
             <label class="form-label">Año *</label>
