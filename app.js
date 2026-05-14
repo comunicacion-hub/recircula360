@@ -252,12 +252,31 @@ async function sheetsGet(sheetName, filtros = {}) {
       if (val) data = data.filter(r => r[key] === val);
     });
     return data;
-  } catch(e) {
-    console.error('Error Sheets API:', e);
-    return null; // null indica fallo → fallback a Apps Script
+ } catch(e) {
+    console.warn('Sheets API falló, renovando token...');
+    await renovarToken();
+    return null;
+  }
   }
 }
-
+function renovarToken() {
+  return new Promise((resolve) => {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: G_CLIENT_ID,
+      scope: 'email profile https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets.readonly',
+      callback: (resp) => {
+        if (!resp.error) {
+          ACCESS_TOKEN = resp.access_token;
+          TOKEN_EXPIRY = Date.now() + (resp.expires_in - 60) * 1000;
+          sessionStorage.setItem('rcr_token', ACCESS_TOKEN);
+          sessionStorage.setItem('rcr_token_exp', TOKEN_EXPIRY);
+        }
+        resolve();
+      },
+    });
+    client.requestAccessToken();
+  });
+}
 // ============================================================
 // NAVEGACIÓN
 // ============================================================
