@@ -198,7 +198,7 @@ function confirmarEliminarEntrega(id, folderId) {
 
 async function eliminarEntrega(id, folderId) {
   try {
-    const res = await apiPost({ action: 'deleteEntrega', id, folderId });
+    const res = await apiPostQueued({ action: 'deleteEntrega', id, folderId });
     if (!res.ok) { showToast('Error al eliminar: ' + (res.error||'')); return; }
     showToast('Entrega eliminada ✓');
     cerrarModal();
@@ -540,7 +540,7 @@ async function guardarEntrega(id) {
   if (btn) { btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Guardando...'; }
 
   try {
-    const res = await apiPost({ action: 'saveEntrega', data });
+    const res = await apiPostQueued({ action: 'saveEntrega', data });
     if (!res.ok) { showToast('Error: '+(res.error||'desconocido')); return; }
 
     if (EVIDENCIAS_LISTA.length > 0 && res.folderId) {
@@ -659,7 +659,7 @@ async function guardarCompradorEntregas(id) {
   const btn = document.getElementById('btn-guardar-com');
   if (btn) { btn.disabled=true; btn.innerHTML='<i class="ti ti-loader"></i> Guardando...'; }
   try {
-    const res = await apiPost({ action:'saveComprador', data:{
+    const res = await apiPostQueued({ action:'saveComprador', data:{
       ID_Comprador:id||'', Nombre:nombre,
       'Nivel Intermediacion':nivel, Provincia:provincia, Activo:activo
     }});
