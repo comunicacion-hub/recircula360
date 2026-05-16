@@ -148,7 +148,7 @@ function renderContenidoDashboard() {
 
   document.getElementById('dash-content').innerHTML = `
     <!-- KPIs -->
-    <div class="kpi-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+    <div class="kpi-grid">
       <div class="kpi-card">
         <div class="kpi-label">Total TN recuperadas</div>
         <div class="kpi-value">${fmtNum(k.totalTN)} <span class="kpi-unit">TN</span></div>
