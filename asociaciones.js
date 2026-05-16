@@ -1,404 +1,502 @@
-// asociaciones.js
+// dashboard.js
 // ============================================================
 // ============================================================
-// RECIRCULA 360 — asociaciones.js
-// Gestión de asociaciones recicladores
+// RECIRCULA 360 — dashboard.js
+// Dashboard ambiental — Chart.js Canvas
 // ============================================================
 
-let ASOC_DATA   = [];
-let ASOC_BUSCAR = '';
-let ASOC_ESTADO = '';
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+               'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const PROVINCIAS = ['El Oro','Guayas','Manabí','Sucumbíos','Pichincha','Chimborazo'];
+const COLORES_PROV = {
+  'El Oro':     '#33A8DE', 'Guayas':    '#00bda4',
+  'Manabí':     '#506CFF', 'Sucumbíos': '#F5AD21',
+  'Pichincha':  '#9FDA60', 'Chimborazo':'#FF376F',
+};
+
+// Metas editables
+let METAS = { PET: 811, Suave: 248, Duro: 377 };
+
+// Materiales que aparecen en torta
+const MATS_TORTA = ['PET','Plástico Duro','Plástico Suave','Cartón','Lata/Aluminio','Vidrio'];
+let MATS_FILTRO_ACTIVOS = [...MATS_TORTA];
+
+// Charts activos
+let chartTorta = null;
+let chartLineas = null;
+
+// Estado filtros
+let DASH_FILTROS = { anio: '', mes: '', provincia: '', ciudad: '', asociacion: '' };
+let DASH_DATA    = null;
 
 // ============================================================
 // RENDER PRINCIPAL
 // ============================================================
 
-async function renderAsociaciones() {
-  document.getElementById('topbar-actions').innerHTML = `
-    <button class="btn btn-primary" onclick="abrirFormAsociacion()">
-      <i class="ti ti-plus"></i> Nueva asociación
-    </button>
-  `;
-
+async function renderDashboard() {
   const content = document.getElementById('main-content');
+
+  // Cargar Chart.js si no está
+  if (typeof Chart === 'undefined') {
+    await new Promise(resolve => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      s.onload = resolve;
+      document.head.appendChild(s);
+    });
+  }
+
   content.innerHTML = `
-    <!-- Filtros -->
+    <!-- Filtros superiores -->
     <div class="filters-bar">
       <span class="filter-label-inline"><i class="ti ti-adjustments-horizontal"></i> Filtros</span>
       <div class="filter-divider"></div>
-      <input type="text" class="filter-select-sm" id="asoc-buscar"
-        placeholder="Buscar asociación..." oninput="buscarAsociacionDebounced(this.value)"
-        style="min-width:200px">
-      <select class="filter-select-sm" id="asoc-estado-f" onchange="filtrarEstadoAsoc(this.value)">
-        <option value="">Todos los estados</option>
-        <option value="Activa">Activa</option>
-        <option value="Inactiva">Inactiva</option>
+      <select class="filter-select-sm" id="f-anio" onchange="aplicarFiltro('anio',this.value)">
+        <option value="">Todos los años</option>
       </select>
-      <button class="btn-reset-filters" onclick="resetFiltrosAsoc()">
+      <select class="filter-select-sm" id="f-mes" onchange="aplicarFiltro('mes',this.value)">
+        <option value="">Todos los meses</option>
+        ${MESES.map(m => `<option value="${m}">${m}</option>`).join('')}
+      </select>
+      <select class="filter-select-sm" id="f-provincia" onchange="aplicarFiltro('provincia',this.value)">
+        <option value="">Todas las provincias</option>
+        ${PROVINCIAS.map(p => `<option value="${p}">${p}</option>`).join('')}
+      </select>
+      <select class="filter-select-sm" id="f-asociacion" onchange="aplicarFiltro('asociacion',this.value)">
+        <option value="">Todas las asociaciones</option>
+        ${CAT.asociaciones.map(a => `<option value="${a['ID_Asociacion']}">${a['Nombre']}</option>`).join('')}
+      </select>
+      <button class="btn-reset-filters" onclick="resetFiltros()">
         <i class="ti ti-x"></i> Limpiar
+      </button>
+      <div class="filter-divider"></div>
+      <button class="btn btn-glass btn-sm" onclick="abrirTopCompradores()">
+        <i class="ti ti-trophy"></i> Top compradores
+      </button>
+      <button class="btn btn-glass btn-sm" onclick="abrirTopAsociaciones()">
+        <i class="ti ti-building-community"></i> Top asociaciones
       </button>
     </div>
 
     <!-- Contenido -->
-    <div id="asoc-content">
+    <div id="dash-content">
       <div style="display:flex;align-items:center;justify-content:center;padding:60px;gap:16px">
         <div class="spinner"></div>
-        <span style="color:var(--tm)">Cargando asociaciones...</span>
+        <span style="color:var(--tm)">Cargando dashboard...</span>
       </div>
     </div>
   `;
 
-  await cargarAsociaciones();
+  await cargarDashboard();
 }
 
 // ============================================================
 // CARGAR DATOS
 // ============================================================
 
-async function cargarAsociaciones() {
+async function cargarDashboard() {
   try {
-    // Usar Sheets API directa para lectura rápida
-    const todas = await sheetsGet('Asociaciones');
-    if (todas !== null) {
-      ASOC_DATA = todas;
-      CAT.asociaciones      = todas.filter(a => a['Estado'] === 'Activa');
-      CAT.todasAsociaciones = todas;
-    } else {
-      // Fallback a Apps Script
-      const res = await apiGet({ action: 'getAllAsociaciones' });
-      ASOC_DATA = res.ok ? res.data : (CAT.todasAsociaciones || []);
-    }
-    renderTablaAsociaciones();
+    const res = await apiGet({ action: 'getDashboard', ...DASH_FILTROS });
+    if (!res.ok) { showToast('Error cargando dashboard'); return; }
+    DASH_DATA = res.data;
+    poblarFiltrosDisponibles(DASH_DATA.filtrosDisponibles);
+    renderContenidoDashboard();
   } catch(e) {
     console.error(e);
-    showToast('Error cargando asociaciones');
+    showToast('Error de conexión');
   }
 }
 
-function buscarAsociacion(val) {
-  ASOC_BUSCAR = val.toLowerCase();
-  renderTablaAsociaciones();
+function poblarFiltrosDisponibles(f) {
+  if (!f) return;
+  const selAnio = document.getElementById('f-anio');
+  if (selAnio && f.anios) {
+    const cur = DASH_FILTROS.anio;
+    selAnio.innerHTML = '<option value="">Todos los años</option>' +
+      f.anios.map(a => `<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
+  }
 }
-const buscarAsociacionDebounced = (val) => buscarAsociacion(val);
 
-function filtrarEstadoAsoc(val) {
-  ASOC_ESTADO = val;
-  renderTablaAsociaciones();
+function aplicarFiltro(campo, valor) {
+  DASH_FILTROS[campo] = valor;
+  cargarDashboard();
 }
 
-function resetFiltrosAsoc() {
-  ASOC_BUSCAR = '';
-  ASOC_ESTADO = '';
-  const b = document.getElementById('asoc-buscar');
-  const e = document.getElementById('asoc-estado-f');
-  if (b) b.value = '';
-  if (e) e.value = '';
-  renderTablaAsociaciones();
+function resetFiltros() {
+  DASH_FILTROS = { anio: '', mes: '', provincia: '', ciudad: '', asociacion: '' };
+  ['f-anio','f-mes','f-provincia','f-asociacion'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  cargarDashboard();
 }
 
 // ============================================================
-// TABLA
+// RENDER CONTENIDO
 // ============================================================
 
-function renderTablaAsociaciones() {
-  const wrap = document.getElementById('asoc-content');
-  if (!wrap) return;
+function renderContenidoDashboard() {
+  const d = DASH_DATA;
+  const k = d.kpis;
+  const pctPET   = METAS.PET   > 0 ? Math.min((k.tnPET   / METAS.PET)   * 100, 150) : 0;
+  const pctSuave = METAS.Suave > 0 ? Math.min((k.tnSuave / METAS.Suave) * 100, 150) : 0;
+  const pctDuro  = METAS.Duro  > 0 ? Math.min((k.tnDuro  / METAS.Duro)  * 100, 150) : 0;
 
-  let data = ASOC_DATA;
-  if (ASOC_BUSCAR) data = data.filter(a => (a['Nombre']||'').toLowerCase().includes(ASOC_BUSCAR));
-  if (ASOC_ESTADO) data = data.filter(a => a['Estado'] === ASOC_ESTADO);
+  // Destruir charts anteriores
+  if (chartTorta)  { chartTorta.destroy();  chartTorta  = null; }
+  if (chartLineas) { chartLineas.destroy(); chartLineas = null; }
 
-  if (!data.length) {
-    wrap.innerHTML = `
-      <div style="text-align:center;padding:60px;color:var(--tl)">
-        <i class="ti ti-building-community" style="font-size:40px;display:block;margin-bottom:12px"></i>
-        No hay asociaciones registradas
-      </div>`;
+  document.getElementById('dash-content').innerHTML = `
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Total TN recuperadas</div>
+        <div class="kpi-value">${fmtNum(k.totalTN)} <span class="kpi-unit">TN</span></div>
+        <div class="kpi-note">Todos los materiales</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">TN priorizables</div>
+        <div class="kpi-value">${fmtNum(k.tnPriorizables)} <span class="kpi-unit">TN</span></div>
+        <div class="kpi-note">PET + Suave + Duro</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Ingresos venta PET</div>
+        <div class="kpi-value">${fmtMoney(k.ingresosPET)}</div>
+        <div class="kpi-note">Valor generado</div>
+      </div>
+    </div>
+
+    <!-- Fila gráficos -->
+    <div class="dash-charts-row">
+
+      <!-- Torta -->
+      <div class="card">
+        <div class="card-title">
+          TN recuperadas por material
+          <button class="btn btn-glass btn-sm" onclick="abrirFiltroMateriales()" title="Filtrar materiales">
+            <i class="ti ti-filter"></i>
+          </button>
+        </div>
+        <div style="position:relative;height:220px">
+          <canvas id="chart-torta"></canvas>
+        </div>
+      </div>
+
+      <!-- Cilindros avance vs meta -->
+      <div class="card">
+        <div class="card-title">
+          Avance vs meta anual
+          <button class="btn btn-glass btn-sm" onclick="abrirEditarMetas()" title="Editar metas">
+            <i class="ti ti-settings"></i>
+          </button>
+        </div>
+        <div class="cylinders-wrap">
+          ${renderCilindro('PET', k.tnPET, METAS.PET, pctPET, 'linear-gradient(180deg,#506CFF,#33A8DE)')}
+          ${renderCilindro('Duro', k.tnDuro, METAS.Duro, pctDuro, 'linear-gradient(180deg,#0BC3FF,#18AE97)')}
+          ${renderCilindro('Suave', k.tnSuave, METAS.Suave, pctSuave, 'linear-gradient(180deg,#9FDA60,#18AE97)')}
+        </div>
+      </div>
+
+      <!-- Líneas por provincia -->
+      <div class="card">
+        <div class="card-title">TN PET mensual por provincia</div>
+        <div style="position:relative;height:200px">
+          <canvas id="chart-lineas"></canvas>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  // Inicializar Chart.js
+  setTimeout(() => {
+    initChartTorta(d.distribucion);
+    initChartLineas(d.porProvMes, d.meses);
+  }, 50);
+}
+
+// ============================================================
+// CHART: TORTA
+// ============================================================
+
+function initChartTorta(distribucion) {
+  const ctx = document.getElementById('chart-torta');
+  if (!ctx) return;
+
+  const colores = {
+    'PET': '#33A8DE', 'Plástico Duro': '#506CFF', 'Plástico Suave': '#18AE97',
+    'Cartón': '#F5AD21', 'Lata/Aluminio': '#0BC3FF', 'Vidrio': '#9FDA60',
+    'Otros materiales': '#D0D0D8',
+  };
+
+  // Agrupar según filtro activo
+  const labels = [], datos = [], bgs = [];
+  let otros = 0;
+
+  Object.entries(distribucion).forEach(([nombre, val]) => {
+    if (val <= 0) return;
+    const nombreTorta = nombre === 'Lata/Aluminio' ? 'Lata/Aluminio' : nombre;
+    if (MATS_FILTRO_ACTIVOS.includes(nombreTorta)) {
+      labels.push(nombre);
+      datos.push(parseFloat(val.toFixed(2)));
+      bgs.push(colores[nombreTorta] || '#ccc');
+    } else {
+      otros += val;
+    }
+  });
+
+  if (otros > 0) {
+    labels.push('Otros materiales');
+    datos.push(parseFloat(otros.toFixed(2)));
+    bgs.push(colores['Otros materiales']);
+  }
+
+  chartTorta = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: datos, backgroundColor: bgs, borderWidth: 2, borderColor: '#fff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { family: 'Outfit', size: 11 }, padding: 12, boxWidth: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${fmtNum(ctx.raw)} TN`
+          }
+        }
+      },
+      cutout: '60%',
+    }
+  });
+}
+
+// ============================================================
+// CHART: LÍNEAS POR PROVINCIA
+// ============================================================
+
+function initChartLineas(porProvMes, meses) {
+  const ctx = document.getElementById('chart-lineas');
+  if (!ctx) return;
+
+  const provConDatos = PROVINCIAS.filter(p => meses.some(m => (porProvMes[p]?.[m] || 0) > 0));
+  if (!provConDatos.length) {
+    ctx.parentElement.innerHTML = '<p style="color:var(--tl);font-size:13px;padding:20px">Sin datos por provincia</p>';
     return;
   }
 
-  const filas = data.map(a => {
-    const tieneCarpeta = a['ID_Carpeta_Drive'];
-    const estadoBadge  = a['Estado'] === 'Activa'
-      ? '<span class="badge badge-green">Activa</span>'
-      : '<span class="badge badge-warn">Inactiva</span>';
-    const nombreSafe = esc(a['Nombre'] || '');
-    const idSafe     = esc(a['ID_Asociacion'] || '');
+  const datasets = provConDatos.map(p => ({
+    label: p,
+    data: meses.map(m => parseFloat((porProvMes[p]?.[m] || 0).toFixed(2))),
+    borderColor: COLORES_PROV[p],
+    backgroundColor: COLORES_PROV[p] + '20',
+    borderWidth: 2,
+    tension: 0.3,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    fill: false,
+  }));
 
-    return `
-      <tr>
-        <td style="font-weight:600;color:var(--b1)">${nombreSafe || '—'}</td>
-        <td>${esc(a['Provincia']) || '—'}</td>
-        <td>${esc(a['Ciudad']) || '—'}</td>
-        <td style="font-size:12px;color:var(--tm)">${esc(a['Tipo']) || '—'}</td>
-        <td style="text-align:center;font-weight:600">${a['Numero de Recicladores'] || '—'}</td>
-        <td>${estadoBadge}</td>
-        <td>
-          ${tieneCarpeta
-            ? `<a href="https://drive.google.com/drive/folders/${esc(a['ID_Carpeta_Drive'])}"
-                target="_blank" class="btn btn-glass btn-sm">
-                <i class="ti ti-folder"></i> Ver Drive
-               </a>`
-            : `<button class="btn btn-glass btn-sm" data-id="${idSafe}" data-nombre="${nombreSafe}" onclick="crearCarpetaAsociacion(this.dataset.id, this.dataset.nombre)">
-                <i class="ti ti-folder-plus"></i> Crear carpeta
-               </button>`
-          }
-        </td>
-        <td>
-          <div class="td-actions">
-            <button class="btn btn-glass btn-sm" onclick="verAsociacion('${idSafe}')">
-              <i class="ti ti-eye"></i>
-            </button>
-            <button class="btn btn-primary btn-sm" onclick="abrirFormAsociacion('${idSafe}')">
-              <i class="ti ti-pencil"></i>
-            </button>
-          </div>
-        </td>
-      </tr>`;
-  }).join('');
-
-  wrap.innerHTML = `
-    <div class="card" style="padding:0">
-      <div class="table-wrap" style="border:none;border-radius:var(--radius-lg)">
-        <table>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Provincia</th>
-              <th>Ciudad</th>
-              <th>Tipo</th>
-              <th style="text-align:center">Recicladores</th>
-              <th>Estado</th>
-              <th>Carpeta Drive</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>${filas}</tbody>
-        </table>
-      </div>
-    </div>
-    <div style="font-size:12px;color:var(--tl);text-align:right">
-      ${data.length} asociación${data.length !== 1 ? 'es' : ''}
-    </div>
-  `;
+  chartLineas = new Chart(ctx, {
+    type: 'line',
+    data: { labels: meses.map(m => m.substring(0,3)), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { family: 'Outfit', size: 10 }, padding: 8, boxWidth: 10 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${fmtNum(ctx.raw)} TN` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'Outfit', size: 10 } } },
+        y: { grid: { color: '#f0f4f8' }, ticks: { font: { family: 'Outfit', size: 10 } } }
+      }
+    }
+  });
 }
 
 // ============================================================
-// VER DETALLE
+// CILINDROS (mantener SVG — son únicos)
 // ============================================================
 
-function verAsociacion(id) {
-  const a = ASOC_DATA.find(x => x['ID_Asociacion'] === id);
-  if (!a) return;
-
-  abrirModal(`
-    <div class="modal">
-      <div class="modal-head">
-        <div class="modal-title">${a['Nombre']}</div>
-        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+function renderCilindro(nombre, actual, meta, pct, gradient) {
+  const pctLabel = meta > 0 ? ((actual / meta) * 100).toFixed(0) + '%' : '—';
+  return `
+    <div class="cyl-item">
+      <div class="cyl-pct">${pctLabel}</div>
+      <div class="cyl-outer">
+        <div class="cyl-fill" style="height:${Math.min(pct,100)}%;background:${gradient}"></div>
       </div>
-      <div class="modal-body">
-        <div class="form-grid-2">
-          <div>
-            <div class="form-label">Provincia</div>
-            <div style="font-size:14px;margin-top:4px">${a['Provincia'] || '—'}</div>
-          </div>
-          <div>
-            <div class="form-label">Ciudad</div>
-            <div style="font-size:14px;margin-top:4px">${a['Ciudad'] || '—'}</div>
-          </div>
-          <div>
-            <div class="form-label">Tipo</div>
-            <div style="font-size:14px;margin-top:4px">${a['Tipo'] || '—'}</div>
-          </div>
-          <div>
-            <div class="form-label">Estado</div>
-            <div style="margin-top:4px">
-              ${a['Estado'] === 'Activa'
-                ? '<span class="badge badge-green">Activa</span>'
-                : '<span class="badge badge-warn">Inactiva</span>'}
-            </div>
-          </div>
-          <div>
-            <div class="form-label">Número de recicladores</div>
-            <div style="font-size:20px;font-weight:700;color:var(--b1);margin-top:4px">
-              ${a['Numero de Recicladores'] || '—'}
-            </div>
-          </div>
-          <div>
-            <div class="form-label">Fecha ingreso</div>
-            <div style="font-size:14px;margin-top:4px">${fmtFecha(a['Fecha Ingreso']) || '—'}</div>
-          </div>
-        </div>
-
-        ${a['Observaciones'] ? `
-          <div style="margin-top:16px">
-            <div class="form-label">Observaciones</div>
-            <div style="font-size:13px;color:var(--tm);margin-top:4px">${a['Observaciones']}</div>
-          </div>` : ''}
-
-        <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
-          ${a['ID_Carpeta_Drive']
-            ? `<a href="https://drive.google.com/drive/folders/${esc(a['ID_Carpeta_Drive'])}"
-                target="_blank" class="btn btn-glass">
-                <i class="ti ti-folder"></i> Ver carpeta Drive
-               </a>`
-            : `<button class="btn btn-glass" data-id="${esc(a['ID_Asociacion'])}" data-nombre="${esc(a['Nombre']||'')}" onclick="cerrarModal();crearCarpetaAsociacion(this.dataset.id, this.dataset.nombre)">
-                <i class="ti ti-folder-plus"></i> Crear carpeta Drive
-               </button>`}
-          <button class="btn btn-primary" onclick="cerrarModal();abrirFormAsociacion('${esc(a['ID_Asociacion'])}')">
-            <i class="ti ti-pencil"></i> Editar
-          </button>
-        </div>
-      </div>
-    </div>
-  `);
+      <div class="cyl-name">${nombre}</div>
+      <div style="font-size:9px;color:var(--tl);margin-top:2px">${fmtNum(actual)} / ${meta} TN</div>
+    </div>`;
 }
 
 // ============================================================
-// FORMULARIO NUEVA / EDITAR
+// FILTRO DE MATERIALES (multi-select)
 // ============================================================
 
-function abrirFormAsociacion(id = null) {
-  const a = id ? ASOC_DATA.find(x => x['ID_Asociacion'] === id) : null;
+function abrirFiltroMateriales() {
+  const todosLosMats = ['PET','Plástico Duro','Plástico Suave','Cartón','Lata/Aluminio','Vidrio',
+    'Chatarra','Cobre','Papel Archivo','Periódico','Soplado','Tetrapak','Suela','Bronce','Batería','Acero'];
+
+  const checks = todosLosMats.map(m => `
+    <label style="display:flex;align-items:center;gap:8px;padding:7px 0;cursor:pointer;font-size:13px">
+      <input type="checkbox" value="${m}" ${MATS_FILTRO_ACTIVOS.includes(m)?'checked':''}>
+      ${m}
+    </label>`).join('');
 
   abrirModal(`
-    <div class="modal">
+    <div class="modal" style="max-width:380px">
       <div class="modal-head">
-        <div class="modal-title">${a ? 'Editar asociación' : 'Nueva asociación'}</div>
+        <div class="modal-title">Filtrar materiales en gráfico</div>
         <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
       </div>
       <div class="modal-body">
-
-        <div class="form-group">
-          <label class="form-label">Nombre *</label>
-          <input type="text" class="form-input" id="aso-nombre"
-            placeholder="Nombre de la asociación" value="${a?.['Nombre'] || ''}">
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="btn btn-glass btn-sm" onclick="selTodosMats(true)">Todos</button>
+          <button class="btn btn-glass btn-sm" onclick="selTodosMats(false)">Ninguno</button>
         </div>
-
-        <div class="form-grid-2">
-          <div class="form-group">
-            <label class="form-label">Provincia</label>
-            <select class="form-select" id="aso-provincia">
-              ${['El Oro','Guayas','Manabí','Sucumbíos','Pichincha','Chimborazo','Otra'].map(p =>
-                `<option value="${p}" ${a?.['Provincia']===p?'selected':''}>${p}</option>`
-              ).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Ciudad</label>
-            <input type="text" class="form-input" id="aso-ciudad"
-              placeholder="Ciudad" value="${a?.['Ciudad'] || ''}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Tipo</label>
-            <select class="form-select" id="aso-tipo">
-              ${['Formal','Colectivo','Grupo'].map(t =>
-                `<option value="${t}" ${a?.['Tipo']===t?'selected':''}>${t}</option>`
-              ).join('')}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Estado</label>
-            <select class="form-select" id="aso-estado">
-              <option value="Activa"   ${(!a || a?.['Estado']==='Activa')  ?'selected':''}>Activa</option>
-              <option value="Inactiva" ${a?.['Estado']==='Inactiva'?'selected':''}>Inactiva</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Número de recicladores</label>
-          <input type="number" class="form-input" id="aso-recicladores" min="0"
-            placeholder="0" value="${a?.['Numero de Recicladores'] || ''}">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Observaciones</label>
-          <textarea class="form-textarea" id="aso-obs"
-            placeholder="Notas adicionales...">${a?.['Observaciones'] || ''}</textarea>
-        </div>
-
+        <div id="mats-checks">${checks}</div>
       </div>
       <div class="modal-foot">
         <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn btn-primary" id="btn-guardar-aso" onclick="guardarAsociacion('${id || ''}')">
-          <i class="ti ti-check"></i> ${a ? 'Actualizar' : 'Guardar'}
+        <button class="btn btn-primary" onclick="aplicarFiltroMateriales()">
+          <i class="ti ti-check"></i> Aplicar
         </button>
       </div>
     </div>
   `);
 }
 
-// ============================================================
-// GUARDAR
-// ============================================================
+function selTodosMats(todos) {
+  document.querySelectorAll('#mats-checks input[type=checkbox]').forEach(cb => cb.checked = todos);
+}
 
-async function guardarAsociacion(id) {
-  const nombre       = document.getElementById('aso-nombre')?.value?.trim();
-  const provincia    = document.getElementById('aso-provincia')?.value;
-  const ciudad       = document.getElementById('aso-ciudad')?.value?.trim();
-  const tipo         = document.getElementById('aso-tipo')?.value;
-  const estado       = document.getElementById('aso-estado')?.value;
-  const recicladores = document.getElementById('aso-recicladores')?.value;
-  const obs          = document.getElementById('aso-obs')?.value;
-
-  if (!nombre) { showToast('El nombre es obligatorio'); return; }
-
-  const btn = document.getElementById('btn-guardar-aso');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...'; }
-
-  try {
-    const data = {
-      ID_Asociacion: id || '',
-      Nombre: nombre,
-      Provincia: provincia,
-      Ciudad: ciudad,
-      Tipo: tipo,
-      Estado: estado,
-      'Numero de Recicladores': recicladores,
-      Observaciones: obs,
-      'Fecha Ingreso': id ? '' : new Date().toISOString().substring(0, 10),
-    };
-
-    const res = await apiPost({ action: 'saveAsociacion', data });
-    if (!res.ok) { showToast('Error: ' + (res.error || 'desconocido')); return; }
-
-    // Si es nueva, crear carpeta en Drive automáticamente
-    if (!id && res.id) {
-      showToast('Creando carpeta en Drive...');
-      await apiPost({ action: 'crearCarpetaAsoc', idAsociacion: res.id, nombre });
-    }
-
-    showToast(id ? 'Asociación actualizada ✓' : 'Asociación creada ✓');
-    cerrarModal();
-    invalidarCache('asociaciones');
-    await cargarAsociaciones();
-  } catch(e) {
-    console.error(e);
-    showToast('Error al guardar');
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Guardar'; }
+function aplicarFiltroMateriales() {
+  MATS_FILTRO_ACTIVOS = [...document.querySelectorAll('#mats-checks input:checked')].map(cb => cb.value);
+  cerrarModal();
+  if (DASH_DATA) {
+    if (chartTorta) { chartTorta.destroy(); chartTorta = null; }
+    initChartTorta(DASH_DATA.distribucion);
   }
 }
 
 // ============================================================
-// CREAR CARPETA DRIVE
+// EDITAR METAS
 // ============================================================
 
-async function crearCarpetaAsociacion(idAsociacion, nombre) {
-  showToast('Creando carpeta en Drive...');
-  try {
-    const res = await apiPost({ action: 'crearCarpetaAsoc', idAsociacion, nombre });
-    if (res.ok) {
-      showToast('Carpeta creada ✓');
-      await cargarAsociaciones();
-    } else {
-      showToast('Error al crear carpeta');
-    }
-  } catch(e) {
-    showToast('Error de conexión');
-  }
+function abrirEditarMetas() {
+  abrirModal(`
+    <div class="modal" style="max-width:380px">
+      <div class="modal-head">
+        <div class="modal-title">Editar metas anuales</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Meta PET (TN)</label>
+          <input type="number" class="form-input" id="meta-pet" value="${METAS.PET}" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Meta Plástico Suave (TN)</label>
+          <input type="number" class="form-input" id="meta-suave" value="${METAS.Suave}" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Meta Plástico Duro (TN)</label>
+          <input type="number" class="form-input" id="meta-duro" value="${METAS.Duro}" min="0">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-glass" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarMetas()">
+          <i class="ti ti-check"></i> Guardar
+        </button>
+      </div>
+    </div>
+  `);
+}
+
+function guardarMetas() {
+  METAS.PET   = parseFloat(document.getElementById('meta-pet')?.value)   || METAS.PET;
+  METAS.Suave = parseFloat(document.getElementById('meta-suave')?.value) || METAS.Suave;
+  METAS.Duro  = parseFloat(document.getElementById('meta-duro')?.value)  || METAS.Duro;
+  cerrarModal();
+  showToast('Metas actualizadas ✓');
+  if (DASH_DATA) renderContenidoDashboard();
+}
+
+// ============================================================
+// TOP COMPRADORES
+// ============================================================
+
+function abrirTopCompradores() {
+  if (!DASH_DATA?.ranking?.length) { showToast('Sin datos de compradores'); return; }
+  const maxTN = DASH_DATA.ranking[0]?.tnPET || 1;
+  const filas = DASH_DATA.ranking.map(c => `
+    <tr>
+      <td style="font-weight:700;color:var(--b1)">${c.ranking}</td>
+      <td style="font-weight:500">${c.nombre}</td>
+      <td>${nivelBadge(c.nivel)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="ranking-bar-bg"><div class="ranking-bar-fill" style="width:${(c.tnPET/maxTN)*100}%"></div></div>
+          <span style="font-size:11.5px;font-weight:600;white-space:nowrap">${fmtNum(c.tnPET)} TN</span>
+        </div>
+      </td>
+      <td style="font-size:12px;color:var(--tm)">$${fmtNum(c.precioPETprom,2)}/kg</td>
+    </tr>`).join('');
+
+  abrirModal(`
+    <div class="modal" style="max-width:680px">
+      <div class="modal-head">
+        <div class="modal-title"><i class="ti ti-trophy"></i> Top compradores · PET</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <div class="table-wrap" style="border:none;border-radius:0">
+          <table>
+            <thead><tr><th>#</th><th>Comprador</th><th>Nivel</th><th>TN PET</th><th>Precio prom.</th></tr></thead>
+            <tbody>${filas}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+// ============================================================
+// TOP ASOCIACIONES
+// ============================================================
+
+function abrirTopAsociaciones() {
+  if (!DASH_DATA) { showToast('Sin datos'); return; }
+
+  // Calcular TN por asociación desde las entregas
+  const ranking = DASH_DATA.colectivos.map(nombre => {
+    return { nombre };
+  });
+
+  // Si no hay datos de ranking por asociación, mostrar lista simple
+  const items = DASH_DATA.colectivos.map((nombre, i) => `
+    <tr>
+      <td style="font-weight:700;color:var(--b1)">${i+1}</td>
+      <td style="font-weight:500">${nombre}</td>
+    </tr>`).join('');
+
+  abrirModal(`
+    <div class="modal" style="max-width:500px">
+      <div class="modal-head">
+        <div class="modal-title"><i class="ti ti-building-community"></i> Top asociaciones</div>
+        <button class="modal-close" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="modal-body" style="padding:0">
+        <div class="table-wrap" style="border:none;border-radius:0">
+          <table>
+            <thead><tr><th>#</th><th>Asociación</th></tr></thead>
+            <tbody>${items}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `);
 }
 
 
