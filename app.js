@@ -7,6 +7,7 @@ const G_CLIENT_ID       = '783730193199-d7nhahv3ou4rmps7nrpoop5cpor079ej.apps.go
 const DOMAIN            = 'redesconrostro.org';
 const DRIVE_FOLDER_ROOT = '1AQyBa9AAdVzukBaZxWa7jpSN2DYkoFhv';
 const HUB_URL           = 'https://comunicacion-hub.github.io/recirculaapp/';
+const OFFLINE_QUEUE_KEY = 'rcr_offline_queue';
 
 let SESSION      = null;
 let ACCESS_TOKEN = null;
@@ -153,9 +154,86 @@ async function apiGet(params) {
 }
 
 async function apiPost(body) {
-  const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(body) });
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(body)
+  });
   if (!res.ok) throw new Error('Error HTTP ' + res.status);
   return res.json();
+}
+
+// ============================================================
+// COLA OFFLINE
+// ============================================================
+function enqueue(body) {
+  try {
+    const q = JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]');
+    q.push({ ts: Date.now(), body });
+    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q));
+  } catch {}
+}
+function getQueue() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]'); } catch { return []; }
+}
+function setQueue(q) { localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q)); }
+
+async function apiPostQueued(body) {
+  if (!navigator.onLine) {
+    enqueue(body);
+    showToast('Sin conexión — guardado en cola');
+    actualizarIndicadorOffline();
+    return { ok: true, queued: true };
+  }
+  try {
+    return await apiPost(body);
+  } catch (err) {
+    enqueue(body);
+    showToast('Error de red — guardado en cola');
+    actualizarIndicadorOffline();
+    return { ok: true, queued: true };
+  }
+}
+
+async function syncQueue() {
+  if (!navigator.onLine) return;
+  const q = getQueue();
+  if (!q.length) return;
+  const pendientes = [];
+  let exitosos = 0;
+  for (const item of q) {
+    try {
+      const res = await apiPost(item.body);
+      if (res.ok) exitosos++;
+      else pendientes.push(item);
+    } catch {
+      pendientes.push(item);
+    }
+  }
+  setQueue(pendientes);
+  if (exitosos > 0) {
+    showToast(`${exitosos} cambio${exitosos>1?'s':''} sincronizado${exitosos>1?'s':''} ✓`);
+    actualizarIndicadorOffline();
+    invalidarCache();
+  }
+}
+
+function actualizarIndicadorOffline() {
+  const el = document.getElementById('offline-badge');
+  if (!el) return;
+  const online  = navigator.onLine;
+  const pending = getQueue().length;
+  if (!online) {
+    el.style.display = 'inline-flex';
+    el.className = 'badge badge-warn';
+    el.innerHTML = `<i class="ti ti-wifi-off"></i> Offline${pending?` · ${pending} en cola`:''}`;
+  } else if (pending > 0) {
+    el.style.display = 'inline-flex';
+    el.className = 'badge badge-cyan';
+    el.innerHTML = `<i class="ti ti-cloud-upload"></i> ${pending} pendiente${pending>1?'s':''}`;
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // ============================================================
@@ -169,15 +247,19 @@ function navTo(seccion) {
   if (navEl) navEl.classList.add('active');
 
   const titulos = {
-    dashboard: '', entregas: 'Entregas', asociaciones: 'Asociaciones',
-    accesos: 'Accesos', configuracion: 'Configuración',
+    dashboard:     { t: 'Panel Central',  s: 'Impacto ambiental' },
+    entregas:      { t: 'Entregas',       s: 'Registro de entregas de material' },
+    asociaciones:  { t: 'Asociaciones',   s: 'Gestión de asociaciones' },
+    accesos:       { t: 'Accesos',        s: 'Enlaces y recursos del equipo' },
+    configuracion: { t: 'Configuración',  s: 'Administración del sistema' },
   };
 
-  document.getElementById('topbar-title').textContent = titulos[seccion] || seccion;
-  document.getElementById('topbar-sub').textContent   =
-    seccion === 'dashboard' ? 'Bienvenido, ' + SESSION.nombre.split(' ')[0] + ' 👋' : '';
+  const info = titulos[seccion] || { t: seccion, s: '' };
+  document.getElementById('topbar-title').textContent = info.t;
+  document.getElementById('topbar-sub').textContent   = info.s;
   document.getElementById('main-content').innerHTML   = '';
-  document.getElementById('topbar-actions').innerHTML = '';
+  document.getElementById('topbar-actions').innerHTML = '<span id="offline-badge" class="badge" style="display:none"></span>';
+  actualizarIndicadorOffline();
 
   switch (seccion) {
     case 'dashboard':     renderDashboard();     break;
@@ -313,7 +395,11 @@ window.addEventListener('load', async () => {
   if (recuperarSesion()) {
     mostrarLoading();
     await iniciarApp();
+    syncQueue();
   } else {
     window.location.href = HUB_URL;
   }
 });
+
+window.addEventListener('online',  () => { actualizarIndicadorOffline(); syncQueue(); });
+window.addEventListener('offline', actualizarIndicadorOffline);
