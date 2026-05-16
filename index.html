@@ -58,24 +58,24 @@
           <div class="user-role" id="user-role">—</div>
         </div>
       </div>
-     <button class="btn-logout" onclick="window.location.href=HUB_URL" style="margin-bottom:6px">
-  <i class="ti ti-home"></i> Hub principal
-</button>
-<button class="btn-logout" onclick="cerrarSesion()">
-  <i class="ti ti-logout"></i> Cerrar sesión
-</button>
+     <a class="btn-logout btn-hub" href="https://comunicacion-hub.github.io/recirculaapp/">
+       <i class="ti ti-home"></i> Hub principal
+     </a>
+     <button class="btn-logout" onclick="cerrarSesion()">
+       <i class="ti ti-logout"></i> Cerrar sesión
+     </button>
     </div>
   </nav>
 
   <!-- ÁREA PRINCIPAL -->
   <div class="main-area">
-    <div class="main-topbar">
+    <div class="main-topbar" id="main-topbar">
       <button class="mobile-menu-btn" onclick="toggleSidebar()">
         <i class="ti ti-menu-2"></i>
       </button>
-      <div>
-        <div class="topbar-title" id="topbar-title">Dashboard</div>
-        <div class="topbar-sub" id="topbar-sub"></div>
+      <div style="flex:1;min-width:0">
+        <div class="topbar-title" id="topbar-title">Panel Central</div>
+        <div class="topbar-sub" id="topbar-sub">Impacto ambiental</div>
       </div>
       <div class="topbar-actions" id="topbar-actions"></div>
     </div>
